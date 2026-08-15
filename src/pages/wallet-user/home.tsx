@@ -1,11 +1,17 @@
-import { ArrowDownLeft, ArrowUpRight, CreditCardIcon, EyeOff, ListIcon, SmartphoneIcon, TrendingDownIcon } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, CreditCardIcon, EyeOff, ListIcon, SmartphoneIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 import { iconSize } from "../../utils/constants"
 import type { TransactionLogListItem } from "../../schemas/shared/outputs"
 import type { ReactNode } from "react"
 import { formatAmount } from "../../utils/format"
+import { useQuery } from "@tanstack/react-query"
+import { getMyTransactionLogs } from "../../services/wallet-user/me.service"
 
 export function HomePage() {
+    const {data:pageResult, isLoading} = useQuery({
+        queryKey: ["wallet-me-logs"],
+        queryFn: () => getMyTransactionLogs(),
+    })
     return (
         <>
             {/* Balance section */}
@@ -22,7 +28,8 @@ export function HomePage() {
                         <ListIcon size={iconSize} />
                     </Link>
                 </div>
-                <TransactionList />
+                {isLoading && <div className="text-center">Loading...</div>}
+                {isLoading || <TransactionList items={pageResult?.items} />}
             </section>
         </>
     )
@@ -32,14 +39,6 @@ function TransactionList({ items = [] }: { items?: TransactionLogListItem[] }) {
     return (
         <div className="p-2 px-4 rounded-2xl bg-white/10 mt-2">
             {items.map(i => <TransactionListItem item={i} />)}
-            <TransactionListItem />
-            <TransactionListItem />
-            <TransactionListItem />
-            <TransactionListItem />
-            <TransactionListItem />
-            <TransactionListItem />
-            <TransactionListItem />
-            <TransactionListItem />
         </div>
     )
 }
@@ -71,22 +70,23 @@ function TransactionListItem({ item }: { item?: TransactionLogListItem }) {
         <div className="flex items-center justify-between gap-4 px-3 py-3 border-b border-white/20">
             <div className="flex min-w-0 items-center gap-3">
                 <div className="flex size-10 shrink-0 items-center justify-center rounded-full text-green-400">
-                    <TrendingDownIcon size={iconSize} />
+                    {item?.trxType === "Income" && <TrendingDownIcon size={iconSize} />}
+                    {item?.trxType === "Expense" && <TrendingUpIcon size={iconSize} />}
                 </div>
 
                 <div className="min-w-0">
                     <div className="font-bold">
-                        Receive from Mg Mg
+                        {item?.trxType === "Income" ? "Receive from" : "Send to"} {item?.walletInfo?.fullName}
                     </div>
 
                     <small className="block truncate text-gray-500">
-                        12.08.2026 12:44
+                        {item?.createdAt}
                     </small>
                 </div>
             </div>
 
-            <div className="shrink-0 font-semibold text-green-400">
-                +1,000,000
+            <div className={`shrink-0 font-semibold ${item?.trxType === "Income" ? "text-green-400" : "text-red-400"}`}>
+                {item?.trxType === "Income" ? "+" : "-"} {item?.amount}
             </div>
         </div>
     )

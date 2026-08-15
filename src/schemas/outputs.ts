@@ -18,3 +18,11 @@ export type WalletUserAuthResult = {
     accessToken:string
     accessType:string
 } & ProfileInfo
+
+export type PageResult<T> = {
+    page:number
+    size:number
+    items:T[],
+    total:number
+    pages:number
+}

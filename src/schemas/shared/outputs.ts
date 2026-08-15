@@ -1,6 +1,6 @@
 export type TransactionStatus = ""
 export type WalletUserType = ""
-export type TransactionType = "Income" | "Expence"
+export type TransactionType = "Income" | "Expense"
 
 export type WalletInfo = {
     walletId:number
@@ -34,6 +34,6 @@ export type TransactionLogListItem = {
     operation:string
 
     userId:string
-    walletinfo:WalletInfo
+    walletInfo:WalletInfo
     createdAt:string
 }
