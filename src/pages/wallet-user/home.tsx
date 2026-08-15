@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { iconSize } from "../../utils/constants"
 import type { TransactionLogListItem } from "../../schemas/shared/outputs"
 import type { ReactNode } from "react"
+import { formatAmount } from "../../utils/format"
 
 export function HomePage() {
     return (
@@ -27,7 +28,7 @@ export function HomePage() {
     )
 }
 
-function TransactionList({items = []}:{items?:TransactionLogListItem[]}) {
+function TransactionList({ items = [] }: { items?: TransactionLogListItem[] }) {
     return (
         <div className="p-2 px-4 rounded-2xl bg-white/10 mt-2">
             {items.map(i => <TransactionListItem item={i} />)}
@@ -46,22 +47,22 @@ function TransactionList({items = []}:{items?:TransactionLogListItem[]}) {
 function ActionButtons() {
     return (
         <div className="flex justify-evenly items-center absolute -bottom-7 px-3 left-1/2 -translate-x-1/2 w-[95%]">
-            <ActionBtn label="Top Up" icon={<SmartphoneIcon size={iconSize} />} />
+            <ActionBtn link="/topup" label="Top Up" icon={<SmartphoneIcon size={iconSize} />} />
             <ActionBtn label="Receive" icon={<ArrowDownLeft size={iconSize} />} />
-            <ActionBtn label="Send" icon={<ArrowUpRight size={iconSize} />} />
+            <ActionBtn link="/send" label="Send" icon={<ArrowUpRight size={iconSize} />} />
             <ActionBtn label="Pay bill" icon={<CreditCardIcon size={iconSize} />} />
         </div>
     )
 }
 
-function ActionBtn({onClick, label, icon}:{label?:string, icon:ReactNode, onClick?:() => void}) {
+function ActionBtn({ onClick, label, icon, link = "" }: { link?: string, label?: string, icon: ReactNode, onClick?: () => void }) {
     return (
-        <div className="text-center">
+        <Link to={link} className="text-center">
             <button onClick={onClick} className="flex mb-1 border rounded-full border-white/20 p-3 w-16 h-16 backdrop-blur-2xl justify-center items-center">
                 {icon}
             </button>
             <small>{label}</small>
-        </div>
+        </Link>
     )
 }
 
@@ -98,7 +99,9 @@ function BalanceCard() {
                 {/* Account inof */}
                 <div className="mb-3 px-2 flex items-center">Acc: ******* 2492 <EyeOff className="ms-3 w-3.5 h-3.5" /></div>
                 {/* Balance */}
-                <span className="text-4xl font-bold me-2">10000000</span><small>.02 mmk</small>
+                <span className="font-bold me-2 whitespace-nowrap text-[clamp(1.25rem,6vw,1.875rem)]">
+                    {formatAmount(1000000000.30)} MMK
+                </span>
             </div>
         </div>
     )
