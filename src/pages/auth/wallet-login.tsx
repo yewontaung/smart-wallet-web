@@ -5,7 +5,7 @@ import { PinInput } from "../../components/pin-input";
 import { iconSize } from "../../utils/constants";
 import { loginWalletUser, verifyWalletUserLogin } from "../../services/auth.service";
 import { useAuth } from "../../hooks/use-auth";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 
 type Step = "phone" | "pin";
 
@@ -17,7 +17,9 @@ export function WalletLoginPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [verificationToken, setVerificationToken] = useState("")
-    const {login} = useAuth()
+    const {login, rememberToken, token} = useAuth()
+
+    if(!token && rememberToken) return <Navigate to="/auth/wallet/remember" replace/>
 
     // Demo only — replace with real API call
     const verifyPhone = async () => {

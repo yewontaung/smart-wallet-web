@@ -17,6 +17,7 @@ export type ProfileInfo = {
 export type WalletUserAuthResult = {
     accessToken:string
     accessType:string
+    rememberToken:string
 } & ProfileInfo
 
 export type PageResult<T> = {

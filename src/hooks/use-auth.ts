@@ -2,11 +2,11 @@ import { createContext, useContext } from "react";
 import type { WalletUserAuthResult } from "../schemas/outputs";
 
 export type UserRole = (
-    "special-wallet-user" | 
-    "normal-wallet-user" | 
-    "admin-manager" |
-    "normal-manager" |
-    "supervisor-manager"
+    "normal_user" | 
+    "special_user" | 
+    "admin" |
+    "moderator" |
+    "super_admin"
 )
 
 export interface User {
@@ -23,6 +23,7 @@ export interface AuthContextValue {
     isLoading: boolean;
     login: (result:WalletUserAuthResult) => Promise<void>;
     logout: () => void;
+    rememberToken:string | null
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);

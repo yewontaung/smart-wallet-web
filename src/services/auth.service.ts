@@ -15,3 +15,10 @@ export async function verifyWalletUserLogin(form:WalletUserVerificationForm) {
         body: form
     })
 }
+
+export async function rememberWalletUser(form:{pin:string, rememberToken:string}) {
+    return await publicRequest<WalletUserAuthResult>("/wallet-user/auth/remember", {
+        method: "POST",
+        body: form
+    })
+}

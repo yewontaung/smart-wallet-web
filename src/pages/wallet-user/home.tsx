@@ -38,7 +38,7 @@ export function HomePage() {
 function TransactionList({ items = [] }: { items?: TransactionLogListItem[] }) {
     return (
         <div className="p-2 px-4 rounded-2xl bg-white/10 mt-2">
-            {items.map(i => <TransactionListItem item={i} />)}
+            {items.map(i => <TransactionListItem key={i.logId} item={i} />)}
         </div>
     )
 }

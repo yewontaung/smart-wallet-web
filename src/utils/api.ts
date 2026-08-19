@@ -94,8 +94,8 @@ export async function privateRequest<T = unknown>(
 
     if (res.status === 401) {
         sessionStorage.removeItem("auth_token");
-        if (window.location.pathname !== "/login") {
-            window.location.href = "/login";
+        if (window.location.pathname !== "/auth/wallet") {
+            window.location.href = "/auth/wallet";
         }
         throw new ApiError("Session expired", 401);
     }
