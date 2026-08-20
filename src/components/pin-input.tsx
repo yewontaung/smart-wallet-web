@@ -36,13 +36,13 @@ export function PinInput({
         emit(next);
 
         if (digit && index < length - 1) {
-            inputsRef.current[index + 1]?.focus();
+            inputsRef.current[index + 1]?.focus({ preventScroll: true });
         }
     };
 
     const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Backspace" && !values[index] && index > 0) {
-            inputsRef.current[index - 1]?.focus();
+            inputsRef.current[index - 1]?.focus({ preventScroll: true });
         }
     };
 
@@ -56,7 +56,7 @@ export function PinInput({
         setValues(next);
         emit(next);
         const lastFilled = Math.min(pasted.length, length) - 1;
-        inputsRef.current[Math.max(lastFilled, 0)]?.focus();
+        inputsRef.current[Math.max(lastFilled, 0)]?.focus({ preventScroll: true });
     };
 
     return (
@@ -64,8 +64,10 @@ export function PinInput({
             {values.map((value, index) => (
                 <input
                     key={index}
-                    ref={(el) => { inputsRef.current[index] = el; }}
-                    type="password"
+                    ref={(el) => {
+                        inputsRef.current[index] = el;
+                    }}
+                    type="text"
                     inputMode="numeric"
                     maxLength={1}
                     value={value}
@@ -74,8 +76,13 @@ export function PinInput({
                     onChange={(e) => handleChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={handlePaste}
+                    style={
+                        {
+                            WebkitTextSecurity: value ? "disc" : "none",
+                        } as React.CSSProperties
+                    }
                     className={`w-11 h-12 text-center text-xl rounded-lg border bg-white/5
-                                outline-none transition-colors
+                                outline-none transition-colors select-none
                                 focus:border-white/40 focus:bg-white/10
                                 disabled:opacity-50
                                 ${error ? "border-red-500/70" : "border-white/15"}`}

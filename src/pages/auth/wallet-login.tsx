@@ -1,5 +1,5 @@
 import { PhoneIcon, LockIcon, ChevronRightIcon, WalletIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, type FormEvent, useEffect } from "react";
 import { BackButton } from "../../components/ui/back-button";
 import { PinInput } from "../../components/pin-input";
 import { iconSize } from "../../utils/constants";
@@ -9,25 +9,53 @@ import { Navigate, useNavigate } from "react-router-dom";
 
 type Step = "phone" | "pin";
 
+/**
+ * Visual Viewport Hook: Dynamically tracks keyboard height
+ */
+function useVisualViewportHeight() {
+    const [height, setHeight] = useState<number | null>(null);
+
+    useEffect(() => {
+        if (!window.visualViewport) return;
+
+        const handleResize = () => {
+            // Read exact visible viewport height (subtracts soft keyboard height)
+            setHeight(window.visualViewport?.height ?? window.innerHeight);
+        };
+
+        // Listen ONLY to resize (keyboard open/close) and ignore page scroll events
+        window.visualViewport.addEventListener("resize", handleResize);
+        handleResize();
+
+        return () => {
+            window.visualViewport?.removeEventListener("resize", handleResize);
+        };
+    }, []);
+
+    return height;
+}
+
 export function WalletLoginPage() {
-    const navigate = useNavigate()
+    const navigate = useNavigate();
     const [step, setStep] = useState<Step>("phone");
     const [phone, setPhone] = useState("");
     const [pin, setPin] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
-    const [verificationToken, setVerificationToken] = useState("")
-    const {login, rememberToken, token} = useAuth()
+    const [verificationToken, setVerificationToken] = useState("");
+    const { login, rememberToken, token } = useAuth();
 
-    if(!token && rememberToken) return <Navigate to="/auth/wallet/remember" replace/>
+    const viewportHeight = useVisualViewportHeight();
 
-    // Demo only — replace with real API call
+    if (!token && rememberToken) return <Navigate to="/auth/wallet/remember" replace />;
+
     const verifyPhone = async () => {
+        if (phone.trim().length < 6 || loading) return;
         setLoading(true);
         setError("");
         try {
-            const result = await loginWalletUser({phoneNo: phone})
-            setVerificationToken(result.verificationToken)
+            const result = await loginWalletUser({ phoneNo: phone });
+            setVerificationToken(result.verificationToken);
             setStep("pin");
         } catch {
             setError("No account found with this phone number.");
@@ -37,51 +65,65 @@ export function WalletLoginPage() {
     };
 
     const handleLogin = async () => {
+        if (pin.length !== 6 || loading) return;
         setLoading(true);
         setError("");
         try {
             const result = await verifyWalletUserLogin({
-                pin, verificationToken
-            })
-            await login(result)
-            navigate("/wallet")
+                pin,
+                verificationToken,
+            });
+            await login(result);
+            navigate("/wallet");
         } catch {
             setError("Incorrect PIN. Please try again.");
         } finally {
             setLoading(false);
         }
-
     };
 
     return (
-        <div className="bg-black/90 text-white min-h-screen flex justify-center">
-            <div className="w-full p-4 md:w-1/3">
+        <div
+            className="bg-black/90 text-white flex flex-col justify-between p-4 md:w-1/3 md:mx-auto overflow-hidden transition-[height] duration-75"
+            style={{ height: viewportHeight ? `${viewportHeight}px` : "100dvh" }}
+        >
+            <div className="flex-1 flex flex-col min-h-0">
                 {/* Header */}
-                <div className="p-2 relative mb-2 h-10">
-                    {step === "pin" && <BackButton onClick={() => { setStep("phone"); setError(""); }} />}
+                <div className="p-2 relative mb-1 h-10 shrink-0">
+                    {step === "pin" && (
+                        <BackButton
+                            onClick={() => {
+                                setStep("phone");
+                                setError("");
+                                setPin("");
+                            }}
+                        />
+                    )}
                 </div>
 
-                {/* Brand / intro */}
-                <div className="flex flex-col items-center mb-8 mt-4">
-                    <div className="h-16 w-16 rounded-2xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center mb-4">
-                        <WalletIcon size={28} className="text-blue-300" />
+                {/* Brand Header */}
+                <div className="flex flex-col items-center mb-5 mt-1 shrink-0">
+                    <div className="h-12 w-12 rounded-2xl bg-blue-500/10 border border-blue-400/20 flex items-center justify-center mb-2.5">
+                        <WalletIcon size={22} className="text-blue-400" />
                     </div>
-                    <h1 className="text-2xl font-bold">Welcome back</h1>
-                    <p className="text-white/50 text-sm mt-1 text-center">
+                    <h1 className="text-xl font-semibold tracking-tight text-white/90">
+                        Welcome back
+                    </h1>
+                    <p className="text-white/40 text-xs mt-1 text-center font-light leading-relaxed max-w-60">
                         {step === "phone"
-                            ? "Login with your phone number to continue"
-                            : "Enter your PIN to access your wallet"}
+                            ? "Enter your phone number to sign in"
+                            : "Enter your 6-digit security PIN"}
                     </p>
                 </div>
 
-                {/* Step indicator */}
-                <div className="flex items-center gap-2 mb-7 px-1">
+                {/* Step Indicator */}
+                <div className="flex items-center gap-1.5 mb-5 px-1 shrink-0">
                     {(["phone", "pin"] as Step[]).map((s, i) => {
                         const currentIndex = step === "phone" ? 0 : 1;
                         return (
                             <div
                                 key={s}
-                                className={`h-1.5 rounded-full flex-1 transition-colors ${
+                                className={`h-1 rounded-full flex-1 transition-all duration-300 ${
                                     i <= currentIndex ? "bg-blue-400" : "bg-white/10"
                                 }`}
                             />
@@ -89,26 +131,28 @@ export function WalletLoginPage() {
                     })}
                 </div>
 
-                {step === "phone" && (
-                    <PhoneStep
-                        phone={phone}
-                        setPhone={setPhone}
-                        onContinue={verifyPhone}
-                        loading={loading}
-                        error={error}
-                    />
-                )}
+                {/* Dynamic Step Content */}
+                <div className="flex-1 flex flex-col min-h-0">
+                    {step === "phone" && (
+                        <PhoneStep
+                            phone={phone}
+                            setPhone={setPhone}
+                            onContinue={verifyPhone}
+                            loading={loading}
+                            error={error}
+                        />
+                    )}
 
-                {step === "pin" && (
-                    <PinStep
-                        phone={phone}
-                        pin={pin}
-                        setPin={setPin}
-                        onConfirm={handleLogin}
-                        loading={loading}
-                        error={error}
-                    />
-                )}
+                    {step === "pin" && (
+                        <PinStep
+                            pin={pin}
+                            setPin={setPin}
+                            onConfirm={handleLogin}
+                            loading={loading}
+                            error={error}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     );
@@ -129,47 +173,59 @@ function PhoneStep({
     loading: boolean;
     error: string;
 }) {
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        onContinue();
+    };
+
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl bg-white/6 px-4 py-4">
-                <label htmlFor="phone-no" className="text-sm text-blue-400 font-medium tracking-wide">
-                    Phone Number
-                </label>
-                <div className="mt-3 flex items-center gap-3">
-                    <PhoneIcon size={iconSize} className="text-white/50" />
-                    <input
-                        id="phone-no"
-                        placeholder="Enter phone number"
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value)}
-                        className="outline-0 grow bg-transparent text-xl placeholder:text-white/25"
-                    />
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between min-h-0">
+            <div className="space-y-4">
+                <div className="rounded-2xl bg-white/4 border border-white/5 px-4 py-3 transition-all focus-within:border-blue-500/40">
+                    <label htmlFor="phone-no" className="text-[10px] uppercase tracking-wider text-blue-400/90 font-medium">
+                        Phone Number
+                    </label>
+                    <div className="mt-1.5 flex items-center gap-3">
+                        <PhoneIcon size={iconSize} className="text-white/40 shrink-0" />
+                        <input
+                            id="phone-no"
+                            placeholder="Enter phone number"
+                            type="text"
+                            inputMode="numeric"
+                            pattern="[0-9]*"
+                            autoComplete="off"
+                            data-lpignore="true"
+                            autoFocus
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            className="outline-0 grow bg-transparent text-base font-normal tracking-wide placeholder:text-white/20 text-white/90"
+                        />
+                    </div>
                 </div>
+
+                {error && <p className="text-xs text-rose-400/90 text-center font-medium">{error}</p>}
             </div>
 
-            {error && <p className="text-sm text-red-400 text-center -mt-2">{error}</p>}
-
-            <ContinueButton
-                onClick={onContinue}
-                disabled={phone.trim().length < 6 || loading}
-                label={loading ? "Checking..." : "Continue"}
-            />
-        </div>
+            <div className="pb-2 pt-3 shrink-0">
+                <ContinueButton
+                    type="submit"
+                    disabled={phone.trim().length < 6 || loading}
+                    label={loading ? "Checking..." : "Continue"}
+                />
+            </div>
+        </form>
     );
 }
 
 /* ---------- Step 2: PIN ---------- */
 
 function PinStep({
-    phone,
     pin,
     setPin,
     onConfirm,
     loading,
     error,
 }: {
-    phone: string;
     pin: string;
     setPin: (v: string) => void;
     onConfirm: () => void;
@@ -178,48 +234,69 @@ function PinStep({
 }) {
     const canConfirm = pin.length === 6 && !loading;
 
+    const handleSubmit = (e: FormEvent) => {
+        e.preventDefault();
+        if (canConfirm) onConfirm();
+    };
+
+    useEffect(() => {
+        if (pin.length === 6 && !loading) {
+            onConfirm();
+        }
+    }, [pin, loading, onConfirm]);
+
     return (
-        <div className="space-y-6">
-            <div className="rounded-2xl bg-white/6 px-4 py-3 flex items-center gap-3">
-                <PhoneIcon size={16} className="text-white/50" />
-                <div className="text-base">{phone}</div>
-            </div>
+        <form onSubmit={handleSubmit} className="flex-1 flex flex-col justify-between min-h-0">
+            <div className="space-y-3">
+                <div className="rounded-2xl bg-white/4 border border-white/5 px-4 py-4 text-center">
+                    <div className="flex items-center justify-center gap-1.5 text-xs text-blue-400/90 font-medium tracking-wide mb-3">
+                        <LockIcon size={12} />
+                        <span>Security Verification</span>
+                    </div>
 
-            <div className="rounded-2xl bg-white/6 px-4 py-6">
-                <div className="flex items-center justify-center gap-2 text-sm text-blue-400 font-medium tracking-wide mb-5">
-                    <LockIcon size={14} />
-                    Enter your 6-digit PIN
+                    <div>
+                        <PinInput autoFocus={false} length={6} onChange={setPin} error={!!error} disabled={loading} />
+                    </div>
+
+                    {error && <p className="text-xs text-rose-400/90 text-center mt-2.5 font-medium">{error}</p>}
                 </div>
-                <PinInput length={6} onChange={setPin} error={!!error} disabled={loading} />
-                {error && <p className="text-sm text-red-400 text-center mt-3">{error}</p>}
             </div>
 
-            <ContinueButton onClick={onConfirm} disabled={!canConfirm} label={loading ? "Logging in..." : "Login"} />
-        </div>
+            <div className="pb-2 pt-3 shrink-0">
+                <ContinueButton
+                    type="submit"
+                    disabled={!canConfirm}
+                    label={loading ? "Logging in..." : "Login"}
+                />
+            </div>
+        </form>
     );
 }
 
-/* ---------- Shared continue button ---------- */
+/* ---------- Shared Continue Button ---------- */
 
 function ContinueButton({
     onClick,
     disabled,
     label,
+    type = "button",
 }: {
-    onClick: () => void;
+    onClick?: () => void;
     disabled?: boolean;
     label: string;
+    type?: "button" | "submit";
 }) {
     return (
         <button
+            type={type}
             onClick={onClick}
             disabled={disabled}
-            className={`${disabled ? '' : 'theme'} font-semibold w-full rounded-full p-3 text-xl flex items-center justify-center gap-2
-                       disabled:bg-transparent disabled:border disabled:border-white/20 disabled:backdrop-blur-2xl disabled:cursor-not-allowed transition-all
-                       active:scale-[0.98]`}
+            className={`${disabled ? "" : "theme"} font-semibold w-full rounded-full h-13 px-3 text-xl flex items-center justify-center gap-2
+                       disabled:bg-transparent disabled:border disabled:border-white/20 disabled:backdrop-blur-2xl disabled:cursor-not-allowed transition-colors
+                       active:scale-[0.98] shrink-0`}
         >
-            {label}
-            {!disabled && <ChevronRightIcon size={18} />}
+            <span>{label}</span>
+            <ChevronRightIcon size={18} className={disabled ? "hidden" : "block"} />
         </button>
     );
 }
