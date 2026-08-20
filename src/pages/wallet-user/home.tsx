@@ -1,14 +1,14 @@
-import { ArrowDownLeft, ArrowUpRight, CreditCardIcon, EyeOff, ListIcon, SmartphoneIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, CreditCardIcon, Eye, EyeOff, ListIcon, SmartphoneIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 import { iconSize } from "../../utils/constants"
 import type { TransactionLogListItem } from "../../schemas/shared/outputs"
-import type { ReactNode } from "react"
-import { formatAmount } from "../../utils/format"
+import { useState, type ReactNode } from "react"
+import { formatAccountNumber, formatAmount } from "../../utils/format"
 import { useQuery } from "@tanstack/react-query"
-import { getMyTransactionLogs } from "../../services/wallet-user/me.service"
+import { getMyBalance, getMyTransactionLogs } from "../../services/wallet-user/me.service"
 
 export function HomePage() {
-    const {data:pageResult, isLoading} = useQuery({
+    const { data: pageResult, isLoading } = useQuery({
         queryKey: ["wallet-me-logs"],
         queryFn: () => getMyTransactionLogs(),
     })
@@ -46,9 +46,9 @@ function TransactionList({ items = [] }: { items?: TransactionLogListItem[] }) {
 function ActionButtons() {
     return (
         <div className="flex justify-evenly items-center absolute -bottom-7 px-3 left-1/2 -translate-x-1/2 w-[95%]">
-            <ActionBtn link="/topup" label="Top Up" icon={<SmartphoneIcon size={iconSize} />} />
+            <ActionBtn link="/action/topup" label="Top Up" icon={<SmartphoneIcon size={iconSize} />} />
             <ActionBtn label="Receive" icon={<ArrowDownLeft size={iconSize} />} />
-            <ActionBtn link="/send" label="Send" icon={<ArrowUpRight size={iconSize} />} />
+            <ActionBtn link="/action/send" label="Send" icon={<ArrowUpRight size={iconSize} />} />
             <ActionBtn label="Pay bill" icon={<CreditCardIcon size={iconSize} />} />
         </div>
     )
@@ -92,17 +92,80 @@ function TransactionListItem({ item }: { item?: TransactionLogListItem }) {
     )
 }
 
+
+
+
 function BalanceCard() {
+    const [showBalance, setShowBalance] = useState(false);
+
+    const {
+        data: balanceInfo,
+        isLoading,
+    } = useQuery({
+        queryKey: ["wallet-me-balance"],
+        queryFn: () => getMyBalance(),
+    });
+
     return (
-        <div className="border border-sky-400/30 bg-linear-to-br from-blue-600 via-indigo-600 to-sky-500 rounded-2xl p-5 py-10 flex items-center">
-            <div>
-                {/* Account inof */}
-                <div className="mb-3 px-2 flex items-center">Acc: ******* 2492 <EyeOff className="ms-3 w-3.5 h-3.5" /></div>
+        <div className="flex items-center rounded-2xl border border-sky-400/30 bg-linear-to-br from-blue-600 via-indigo-600 to-sky-500 p-5 py-10">
+            <div className="w-full">
+                {/* Account info */}
+                <div className="mb-3 flex items-center px-2">
+                    {isLoading ? (
+                        <div className="h-4 w-36 animate-pulse rounded-md bg-white/20" />
+                    ) : (
+                        <>
+                            <span>
+                                Acc:{" "}
+                                {showBalance
+                                    ? balanceInfo?.phoneNo
+                                    : formatAccountNumber(
+                                        balanceInfo?.phoneNo ?? ""
+                                    )}
+                            </span>
+                        </>
+                    )}
+
+                    {/* Visibility button */}
+                    {!isLoading && (
+                        <button
+                            type="button"
+                            onClick={() =>
+                                setShowBalance((prev) => !prev)
+                            }
+                            className="rounded-full p-1.5 text-white/60 ms-5 transition hover:bg-white/10 hover:text-white"
+                            aria-label={
+                                showBalance
+                                    ? "Hide balance"
+                                    : "Show balance"
+                            }
+                        >
+                            {showBalance ? (
+                                <EyeOff className="h-4 w-4" />
+                            ) : (
+                                <Eye className="h-4 w-4" />
+                            )}
+                        </button>
+                    )}
+
+                </div>
+
                 {/* Balance */}
-                <span className="font-bold me-2 whitespace-nowrap text-[clamp(1.25rem,6vw,1.875rem)]">
-                    {formatAmount(1000000000.30)} MMK
-                </span>
+                <div className="flex items-center">
+                    {isLoading ? (
+                        <div className="h-9 w-48 animate-pulse rounded-lg bg-white/20" />
+                    ) : (
+                        <span className="me-2 whitespace-nowrap text-[clamp(1.25rem,6vw,1.875rem)] font-bold">
+                            {showBalance
+                                ? `${formatAmount(
+                                    balanceInfo?.currentBalance ?? 0
+                                )} MMK`
+                                : "•••••••• MMK"}
+                        </span>
+                    )}
+                </div>
+
             </div>
         </div>
-    )
+    );
 }

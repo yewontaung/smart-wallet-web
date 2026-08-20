@@ -5,7 +5,7 @@ import { Link, NavLink } from "react-router-dom"
 
 export function FloatedTopNavbar() {
     return (
-        <div className="fixed md:right-3/12 inset-e-3.5 top-5 gap-3 z-10 rounded-full p-1.5 border border-white/20 backdrop-blur-2xl">
+        <div className="fixed md:right-3/12 inset-e-3.5 top-3 gap-3 z-10 rounded-full p-1.5 border border-white/20 backdrop-blur-2xl">
             <div className="flex sticky">
                 <Link to="" className="rounded-full hover:bg-black/30 p-2">
                     <UserIcon size={iconSize} />

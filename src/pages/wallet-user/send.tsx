@@ -3,37 +3,59 @@ import { useState } from "react";
 import { BackButton } from "../../components/ui/back-button";
 import { PinInput } from "../../components/pin-input";
 import { iconSize } from "../../utils/constants";
+import { searchReceiver, transferMoney } from "../../services/wallet-user/action.service";
+import type { ReceiverProfile } from "../../schemas/wallet/output";
+import { useWallet } from "../../hooks/use-wallet";
+import { useNavigate } from "react-router-dom";
 
 type Step = "phone" | "details" | "pin";
-
-interface Profile {
-    name: string;
-    phone: string;
-}
-
-const ACCOUNT_BALANCE = 10000;
 
 export function SendPage() {
     const [step, setStep] = useState<Step>("phone");
     const [phone, setPhone] = useState("");
     const [amount, setAmount] = useState("");
     const [note, setNote] = useState("");
-    const [profile, setProfile] = useState<Profile | null>(null);
+    const [profile, setProfile] = useState<ReceiverProfile | null>(null);
     const [loadingProfile, setLoadingProfile] = useState(false);
     const [pin, setPin] = useState("");
 
+    const { currentBalance, walletId } = useWallet()
+    const [errorMessage, setErrorMessage] = useState("")
+    const [transferring, setTransferring] = useState(false)
+    const navigate = useNavigate()
+
     // Replace with real API call
     const lookupProfile = async () => {
-        setLoadingProfile(true);
-        await new Promise((r) => setTimeout(r, 700));
-        setProfile({ name: "Aung Aung", phone });
-        setLoadingProfile(false);
-        setStep("details");
+        try {
+            setLoadingProfile(true);
+            const result = await searchReceiver({ phoneNo: phone })
+            setProfile(result);
+            setStep("details");
+        } catch (e) {
+            if (e instanceof Error)
+                setErrorMessage(e.message)
+        } finally {
+            setLoadingProfile(false);
+        }
     };
 
-    const handleSend = () => {
-        // wire up real submit here
-        console.log({ phone, amount, note, pin });
+    const handleSend = async () => {
+
+        if (!profile) return
+        try {
+            setTransferring(true)
+            const result = await transferMoney({
+                amount: Number(amount),
+                senderWalletId: walletId,
+                receiverWalletId: profile?.walletId,
+                note,
+                pin,
+            })
+            setTransferring(false)
+            navigate(`/wallet/transaction/${result.actionResult}`)
+        } finally {
+            setTransferring(false)
+        }
     };
 
     return (
@@ -51,7 +73,7 @@ export function SendPage() {
                         <WalletIcon size={16} />
                         Account Balance
                     </div>
-                    <div className="text-lg font-semibold">{ACCOUNT_BALANCE.toLocaleString()} ks</div>
+                    <div className="text-lg font-semibold">{currentBalance.toLocaleString()} ks</div>
                 </div>
 
                 {/* Step indicator */}
@@ -63,6 +85,7 @@ export function SendPage() {
                         setPhone={setPhone}
                         onContinue={lookupProfile}
                         loading={loadingProfile}
+                        errorMessage={errorMessage}
                     />
                 )}
 
@@ -73,7 +96,7 @@ export function SendPage() {
                         setAmount={setAmount}
                         note={note}
                         setNote={setNote}
-                        balance={ACCOUNT_BALANCE}
+                        balance={currentBalance}
                         onContinue={() => setStep("pin")}
                     />
                 )}
@@ -85,6 +108,7 @@ export function SendPage() {
                         pin={pin}
                         setPin={setPin}
                         onConfirm={handleSend}
+                        transferring={transferring}
                     />
                 )}
             </div>
@@ -108,9 +132,8 @@ function StepIndicator({ step }: { step: Step }) {
             {steps.map((s, i) => (
                 <div key={s} className="flex items-center gap-2 flex-1">
                     <div
-                        className={`h-1.5 rounded-full flex-1 transition-colors ${
-                            i <= currentIndex ? "bg-blue-400" : "bg-white/10"
-                        }`}
+                        className={`h-1.5 rounded-full flex-1 transition-colors ${i <= currentIndex ? "bg-blue-400" : "bg-white/10"
+                            }`}
                     />
                 </div>
             ))}
@@ -125,11 +148,13 @@ function PhoneStep({
     setPhone,
     onContinue,
     loading,
+    errorMessage,
 }: {
     phone: string;
     setPhone: (v: string) => void;
     onContinue: () => void;
     loading: boolean;
+    errorMessage?: string
 }) {
     return (
         <div className="space-y-6">
@@ -148,7 +173,9 @@ function PhoneStep({
                         className="outline-0 grow bg-transparent text-xl placeholder:text-white/25"
                     />
                 </div>
+                {errorMessage && <span className="text-red-400">{errorMessage}</span>}
             </div>
+
 
             <ContinueButton
                 onClick={onContinue}
@@ -170,7 +197,7 @@ function DetailsStep({
     balance,
     onContinue,
 }: {
-    profile: Profile;
+    profile: ReceiverProfile;
     amount: string;
     setAmount: (v: string) => void;
     note: string;
@@ -189,8 +216,8 @@ function DetailsStep({
                     <UserRoundIcon size={20} className="text-blue-300" />
                 </div>
                 <div>
-                    <div className="text-base font-medium">{profile.name}</div>
-                    <div className="text-sm text-white/50">{profile.phone}</div>
+                    <div className="text-base font-medium">{profile.fullName}</div>
+                    <div className="text-sm text-white/50">{profile.phoneNo}</div>
                 </div>
             </div>
 
@@ -248,12 +275,14 @@ function PinStep({
     pin,
     setPin,
     onConfirm,
+    transferring
 }: {
-    profile: Profile;
+    profile: ReceiverProfile;
     amount: string;
     pin: string;
     setPin: (v: string) => void;
     onConfirm: () => void;
+    transferring?:boolean
 }) {
     const canConfirm = pin.length === 6;
 
@@ -262,7 +291,7 @@ function PinStep({
             <div className="rounded-2xl bg-white/6 px-4 py-4 flex items-center justify-between">
                 <div>
                     <div className="text-sm text-blue-400/70">Sending to</div>
-                    <div className="text-base font-medium mt-1">{profile.name}</div>
+                    <div className="text-base font-medium mt-1">{profile.fullName}</div>
                 </div>
                 <div className="text-right">
                     <div className="text-sm text-blue-400/70">Amount</div>
@@ -280,7 +309,8 @@ function PinStep({
                 <PinInput length={6} onChange={setPin} />
             </div>
 
-            <ContinueButton onClick={onConfirm} disabled={!canConfirm} label="Confirm & Send" />
+            {transferring || <ContinueButton onClick={onConfirm} disabled={!canConfirm} label="Confirm & Send" />}
+            {transferring && <div className="text-center">Sending...</div>}
         </div>
     );
 }

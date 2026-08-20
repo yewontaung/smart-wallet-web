@@ -64,3 +64,20 @@ export function splitAmount(value: number | string, decimals = 2): { whole: stri
         decimal: decimalPart,
     };
 }
+
+export function formatAccountNumber(account: string) {
+    const clean = account.replace(/\s/g, "");
+
+    if (clean.length <= 4) {
+        return clean;
+    }
+
+    return `•••• •••• ${clean.slice(-4)}`;
+}
+
+export function formatDate(date: string) {
+    return new Intl.DateTimeFormat("en-US", {
+        dateStyle: "medium",
+        timeStyle: "short",
+    }).format(new Date(date));
+}

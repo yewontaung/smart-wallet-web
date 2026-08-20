@@ -1,4 +1,4 @@
-export type TransactionStatus = ""
+export type TransactionStatus = "Pending" | "Completed" | "Failed" | "Cancelled"
 export type WalletUserType = ""
 export type TransactionType = "Income" | "Expense"
 
@@ -36,4 +36,18 @@ export type TransactionLogListItem = {
     userId:string
     walletInfo:WalletInfo
     createdAt:string
+}
+
+export type TransactionDetail = {
+    trxId:string
+    amount:number
+    status:TransactionStatus
+    note?:string
+    operation:string
+
+    receiverWallet:WalletInfo
+    senderWallet:WalletInfo
+
+    createdAt:string
+    updatedAt:string
 }

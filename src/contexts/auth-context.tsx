@@ -55,6 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         sessionStorage.removeItem("auth_token");
         setToken(null);
         setUser(null);
+        setRememberToken(null);
     };
 
     return (
