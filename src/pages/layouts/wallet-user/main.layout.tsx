@@ -1,21 +1,28 @@
 import { Outlet } from "react-router-dom";
 import { ProtectedRoute } from "../../../components/protected-route";
-import { FloatedBottomNavbar, FloatedTopNavbar } from "../../../components/floated-navbar";
+import {
+    FloatedBottomNavbar,
+    FloatedTopNavbar,
+} from "../../../components/floated-navbar";
 
 export function MainLayout() {
     return (
         <ProtectedRoute>
-            <div className="bg-white/10 min-h-screen relative text-white">
-                <section>
-                    <div className="flex justify-center">
-                        <div className="w-full relative md:w-[40%]">
+            <div className="relative h-dvh overflow-hidden bg-white/10 text-white">
+                <section className="h-full overflow-hidden">
+                    <div className="flex h-full justify-center">
+                        <div className="relative h-full w-full overflow-hidden md:w-[40%]">
                             <FloatedTopNavbar />
-                            <Outlet />
+
+                            <div className="h-full overflow-hidden">
+                                <Outlet />
+                            </div>
                         </div>
                     </div>
                 </section>
+
                 <FloatedBottomNavbar />
             </div>
         </ProtectedRoute>
-    )
+    );
 }
