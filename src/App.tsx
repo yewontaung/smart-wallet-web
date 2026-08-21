@@ -12,6 +12,12 @@ import { AgentPage } from './pages/wallet-user/agent'
 import { WalletRememberPage } from './pages/auth/wallet-remember'
 import { WalletActionLayout } from './pages/layouts/wallet-user/action.layout'
 import WalletTransactionDetailPage from './pages/wallet-user/transaction/detail'
+import ManagerLoginPage from './pages/auth/manager-login'
+import ManagerLayout from './pages/layouts/manager/manager.layout'
+import DashboardPage from './pages/manager/dashboard'
+import AccountDetailPage from './pages/manager/accounts/account-detail'
+import AccountListPage from './pages/manager/accounts/account-list'
+import BusinessListPage from './pages/manager/businesses/business-list'
 
 function App() {
 
@@ -21,6 +27,7 @@ function App() {
         <Route path='/auth'>
           <Route path='wallet' element={<WalletLoginPage />} />
           <Route path='wallet/remember' element={<WalletRememberPage />} />
+          <Route path='manager' element={<ManagerLoginPage />} />
         </Route>
         <Route path='/wallet' element={<WalletLayout />}>
           <Route index element={<HomePage />} />
@@ -34,6 +41,17 @@ function App() {
           <Route path='topup' element={<TopUpPage />} />
           <Route path='send' element={<SendPage />} />
           <Route path='pay' element={<PayPage />} />
+        </Route>
+
+        <Route path='/manager' element={<ManagerLayout />}>
+          <Route path='dashboard' element={<DashboardPage />} />
+          <Route path='accounts'>
+            <Route index element={<AccountListPage />} />
+            <Route path=':accountId' element={<AccountDetailPage />} />
+          </Route>
+          <Route path='businesses'>
+            <Route index element={<BusinessListPage />} />
+          </Route>
         </Route>
       </Routes>
     </AuthProvider>

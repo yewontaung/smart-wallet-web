@@ -1,0 +1,6 @@
+export type TransactionStatus = "Pending" | "Completed" | "Failed" | "Cancelled"
+export type WalletUserType = ""
+export type TransactionType = "Income" | "Expense"
+export type WalletUserStatus = "Pending" | "Verified" | "Freeze"
+export type BusinessType = "Standalone" | "Organization"
+export type BusinessStatus = "Open" | "Closed"

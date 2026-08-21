@@ -1,6 +1,4 @@
-export type TransactionStatus = "Pending" | "Completed" | "Failed" | "Cancelled"
-export type WalletUserType = ""
-export type TransactionType = "Income" | "Expense"
+import type { BusinessStatus, BusinessType, TransactionStatus, TransactionType, WalletUserType } from "../enums"
 
 export type WalletInfo = {
     walletId:number
@@ -51,3 +49,28 @@ export type TransactionDetail = {
     createdAt:string
     updatedAt:string
 }
+
+export type OwnerInfo = {
+  userId: number;
+  fullName: string;
+  profileUrl?: string;
+};
+
+export type ApproverInfo = {
+  approverId: number;
+  approvedAt: string;
+  approverFullName: string;
+};
+
+export type BusinessProfileListItem = {
+  businessId: number;
+  qualifiedName: string;
+  bannerUrl?: string;
+  description: string;
+  businessType: BusinessType;
+  createdAt: string;
+  status: BusinessStatus;
+
+  owner: OwnerInfo;
+  approver: ApproverInfo;
+};

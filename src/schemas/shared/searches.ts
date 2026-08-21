@@ -1,3 +1,5 @@
+import type { BusinessType } from "../enums"
+
 export type TransactionSearch = {
 
     q?:string
@@ -7,3 +9,10 @@ export type TransactionSearch = {
     dateFrom?:string
     dateTo?:string
 }
+
+export type BusinessProfileSearch = {
+  q?: string; // owner name, business name
+  businessType?: BusinessType;
+  createdFrom?: string;
+  createdTo?: string;
+};
