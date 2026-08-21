@@ -69,9 +69,9 @@ function TransactionListItem({ item }: { item?: TransactionLogListItem }) {
     return (
         <div className="flex items-center justify-between gap-4 px-3 py-3 border-b border-white/20">
             <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full text-green-400">
-                    {item?.trxType === "Income" && <TrendingDownIcon size={iconSize} />}
-                    {item?.trxType === "Expense" && <TrendingUpIcon size={iconSize} />}
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full">
+                    {item?.trxType === "Income" && <TrendingDownIcon size={iconSize} className=" text-green-400"/>}
+                    {item?.trxType === "Expense" && <TrendingUpIcon size={iconSize} className="text-red-400"/>}
                 </div>
 
                 <div className="min-w-0">
