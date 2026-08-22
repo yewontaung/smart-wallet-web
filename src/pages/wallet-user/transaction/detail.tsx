@@ -10,10 +10,12 @@ import {
     XCircle,
 } from "lucide-react";
 import { useParams } from "react-router-dom";
-import type { TransactionDetail, TransactionStatus } from "../../../schemas/shared/outputs";
+import type { TransactionDetail } from "../../../schemas/shared/outputs";
 import { formatAmount, formatDate } from "../../../utils/format";
 import { useQuery } from "@tanstack/react-query";
 import { getTransactionById } from "../../../services/wallet-user/transaction.service";
+import type { TransactionStatus } from "../../../schemas/enums";
+import { useAuth } from "../../../hooks/use-auth";
 
 
 
@@ -49,6 +51,8 @@ function getStatusStyle(status: TransactionStatus) {
 export default function WalletTransactionDetailPage() {
 
     const { trxId } = useParams<{ trxId: string }>();
+    const { user } = useAuth()
+
 
     const { data: transaction, isLoading, isError } = useQuery({
         queryKey: ["transaction-detail"],
@@ -80,7 +84,7 @@ export default function WalletTransactionDetailPage() {
         );
     }
 
-    const isOutgoing = transaction.operation === "Transfer";
+    const isOutgoing = transaction.senderWallet.userId === (user?.accountId ?? 0);
 
     return (
         <div className="relative flex h-full min-h-0 flex-col overflow-hidden bg-transparent text-white">
@@ -104,8 +108,8 @@ export default function WalletTransactionDetailPage() {
                 <section className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-md">
                     <div
                         className={`mx-auto flex h-10 w-10 items-center justify-center rounded-xl border ${isOutgoing
-                                ? "bg-sky-500/10 text-sky-400 border-sky-500/20"
-                                : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            ? "bg-red-500/10 text-red-400 border-red-500/20"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
                             }`}
                     >
                         {isOutgoing ? (

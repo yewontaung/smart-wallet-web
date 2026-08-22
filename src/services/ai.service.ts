@@ -3,7 +3,7 @@ import { privateRequest } from "../utils/api";
 
 export async function askAi(form:AIMessageForm) {
     const result = privateRequest<AgentResponse>(
-        "/wallet-user/ai/message",
+        "/ai/message",
         {
             method: "POST",
             body: form

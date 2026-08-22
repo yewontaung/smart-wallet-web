@@ -1,4 +1,4 @@
-import { ArrowDownLeft, ArrowUpRight, CreditCardIcon, Eye, EyeOff, ListIcon, SmartphoneIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
+import { ArrowDownLeft, ArrowUpRight, ChevronRightIcon, CreditCardIcon, Eye, EyeOff, ListIcon, SmartphoneIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
 import { Link } from "react-router-dom"
 import { iconSize } from "../../utils/constants"
 import type { TransactionLogListItem } from "../../schemas/shared/outputs"
@@ -37,7 +37,7 @@ export function HomePage() {
 
 function TransactionList({ items = [] }: { items?: TransactionLogListItem[] }) {
     return (
-        <div className="p-2 px-4 rounded-2xl bg-white/10 mt-2">
+        <div className="p-2 px-4 rounded-2xl bg-white/10 mt-2 divide-y divide-white/10">
             {items.map(i => <TransactionListItem key={i.logId} item={i} />)}
         </div>
     )
@@ -65,33 +65,43 @@ function ActionBtn({ onClick, label, icon, link = "" }: { link?: string, label?:
     )
 }
 
+
 function TransactionListItem({ item }: { item?: TransactionLogListItem }) {
+    if (!item) return null;
+
     return (
-        <div className="flex items-center justify-between gap-4 px-3 py-3 border-b border-white/20">
+        <Link
+            to={`/wallet/transaction/${item.trxId}`}
+            className="flex items-center justify-between gap-3 px-3 py-3 hover:bg-white/5 active:bg-white/10 transition-colors group"
+        >
+            {/* Left Info Group */}
             <div className="flex min-w-0 items-center gap-3">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-full">
-                    {item?.trxType === "Income" && <TrendingDownIcon size={iconSize} className=" text-green-400"/>}
-                    {item?.trxType === "Expense" && <TrendingUpIcon size={iconSize} className="text-red-400"/>}
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/5 border border-white/10">
+                    {item.trxType === "Income" && <TrendingDownIcon size={iconSize} className="text-emerald-400" />}
+                    {item.trxType === "Expense" && <TrendingUpIcon size={iconSize} className="text-rose-400" />}
                 </div>
 
                 <div className="min-w-0">
-                    <div className="font-bold">
-                        {item?.trxType === "Income" ? "Receive from" : "Send to"} {item?.walletInfo?.fullName}
+                    <div className="text-sm font-normal text-white/90 truncate">
+                        {item.trxType === "Income" ? "Received from" : "Sent to"} {item.walletInfo?.fullName}
                     </div>
 
-                    <small className="block truncate text-gray-500">
-                        {item?.createdAt}
+                    <small className="block truncate text-xs text-white/40 font-normal">
+                        {item.createdAt}
                     </small>
                 </div>
             </div>
 
-            <div className={`shrink-0 font-semibold ${item?.trxType === "Income" ? "text-green-400" : "text-red-400"}`}>
-                {item?.trxType === "Income" ? "+" : "-"} {item?.amount}
+            {/* Right Amount & Visual Cue */}
+            <div className="flex items-center gap-2 shrink-0">
+                <div className={`text-sm font-normal ${item.trxType === "Income" ? "text-emerald-400" : "text-white/80"}`}>
+                    {item.trxType === "Income" ? "+" : "-"} {item.amount.toLocaleString()} <span className="text-xs text-white/40">ks</span>
+                </div>
+                <ChevronRightIcon size={16} className="text-white/30 group-hover:text-white/60 transition-colors" />
             </div>
-        </div>
-    )
+        </Link>
+    );
 }
-
 
 
 

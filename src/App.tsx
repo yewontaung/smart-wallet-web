@@ -18,6 +18,7 @@ import DashboardPage from './pages/manager/dashboard'
 import AccountDetailPage from './pages/manager/accounts/account-detail'
 import AccountListPage from './pages/manager/accounts/account-list'
 import BusinessListPage from './pages/manager/businesses/business-list'
+import WalletRoot from './pages/layouts/wallet-user/wallet.root'
 
 function App() {
 
@@ -29,20 +30,21 @@ function App() {
           <Route path='wallet/remember' element={<WalletRememberPage />} />
           <Route path='manager' element={<ManagerLoginPage />} />
         </Route>
-        <Route path='/wallet' element={<WalletLayout />}>
-          <Route index element={<HomePage />} />
-          <Route path='setting' element={<SettingPage />} />
-          <Route path='agent' element={<AgentPage />} />
-          <Route path='transaction'>
-            <Route path=':trxId' element={<WalletTransactionDetailPage />} />
+        <Route element={<WalletRoot />}>
+          <Route path='/wallet' element={<WalletLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path='setting' element={<SettingPage />} />
+            <Route path='agent' element={<AgentPage />} />
+            <Route path='transaction'>
+              <Route path=':trxId' element={<WalletTransactionDetailPage />} />
+            </Route>
+          </Route>
+          <Route path='/action' element={<WalletActionLayout />}>
+            <Route path='topup' element={<TopUpPage />} />
+            <Route path='send' element={<SendPage />} />
+            <Route path='pay' element={<PayPage />} />
           </Route>
         </Route>
-        <Route path='/action' element={<WalletActionLayout />}>
-          <Route path='topup' element={<TopUpPage />} />
-          <Route path='send' element={<SendPage />} />
-          <Route path='pay' element={<PayPage />} />
-        </Route>
-
         <Route path='/manager' element={<ManagerLayout />}>
           <Route path='dashboard' element={<DashboardPage />} />
           <Route path='accounts'>

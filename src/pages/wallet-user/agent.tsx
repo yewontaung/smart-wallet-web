@@ -18,8 +18,9 @@ import {
     Bot,
 } from "lucide-react";
 import type { AgentResponse, AgentAction, AgentHook } from "../../schemas/ai/base";
-import { askAi } from "../../services/ai-service";
+import { askAi } from "../../services/ai.service";
 import { privateRequest } from "../../utils/api";
+import { wsEventBus } from "../../utils/event-bus";
 
 const BOTTOM_NAV_HEIGHT = 96;
 const KEYBOARD_THRESHOLD = 150;
@@ -47,15 +48,15 @@ export function AgentPage() {
     const [loading, setLoading] = useState(false);
     const [optimisticPrompt, setOptimisticPrompt] = useState<string | null>(null);
 
-    const [actionStatuses, setActionStatuses] = useState<Record<number, ActionState>>({});
-    const [actionErrors, setActionErrors] = useState<Record<number, string>>({});
+    const [actionStatuses, setActionStatuses] = useState<Record<string, ActionState>>({});
+    const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
 
-    const [editablePayloads, setEditablePayloads] = useState<Record<number, Record<string, unknown>>>({});
+    const [editablePayloads, setEditablePayloads] = useState<Record<string, Record<string, unknown>>>({});
 
     const [pinModal, setPinModal] = useState<{
         isOpen: boolean;
         pin: string[];
-        actionId: number | null;
+        actionId: string | null;
         hook: AgentHook | null;
     }>({
         isOpen: false,
@@ -110,40 +111,61 @@ export function AgentPage() {
         };
     }, []);
 
+
+    function processAgentActions(agentActions: AgentAction[]) {
+
+        const initialStatuses: Record<string, ActionState> = {};
+        const initialPayloads: Record<string, Record<string, unknown>> = {};
+
+        agentActions.forEach((act) => {
+            if (act.isError) {
+                initialStatuses[act.actionId] = "failed";
+            } else if (act.status === "Completed") {
+                initialStatuses[act.actionId] = "completed";
+            } else if (act.status === "Cancelled") {
+                initialStatuses[act.actionId] = "cancelled";
+            } else if (act.status === "Expired") {
+                initialStatuses[act.actionId] = "expired";
+            } else {
+                initialStatuses[act.actionId] = "idle";
+            }
+
+            if (act.agentHook?.requirePayload) {
+                initialPayloads[act.actionId] = { ...act.agentHook.requirePayload };
+            }
+        });
+
+        return { initialStatuses, initialPayloads };
+    }
+
+    useEffect(() => {
+
+        const unsubcribe = wsEventBus.on("ai_response", (payload) => {
+            console.log("doing ai response")
+            const result = payload as AgentResponse
+            // if (!result?.agentActions || !Array.isArray(result.agentActions)) {
+            //     return;
+            // }
+            console.log("continue...")
+            const { initialStatuses, initialPayloads } = processAgentActions(result.agentActions)
+            setActionStatuses((prev) => ({ ...prev, ...initialStatuses }));
+            setEditablePayloads((prev) => ({ ...prev, ...initialPayloads }));
+            setMessages((prev) => [...prev, result]);
+            setLoading(false);
+            setOptimisticPrompt(null);
+        })
+        return () => unsubcribe()
+    }, [])
+
     async function handleSend(text: string) {
         setOptimisticPrompt(text);
         setLoading(true);
 
         try {
-            const [result] = await Promise.all([
+            await Promise.all([
                 askAi({ prompt: text }),
                 new Promise((res) => setTimeout(res, SIMULATED_DELAY_MS)),
             ]);
-
-            const initialStatuses: Record<number, ActionState> = {};
-            const initialPayloads: Record<number, Record<string, unknown>> = {};
-
-            result.agentActions.forEach((act) => {
-                if (act.isError) {
-                    initialStatuses[act.actionId] = "failed";
-                } else if (act.status === "Completed") {
-                    initialStatuses[act.actionId] = "completed";
-                } else if (act.status === "Cancelled") {
-                    initialStatuses[act.actionId] = "cancelled";
-                } else if (act.status === "Expired") {
-                    initialStatuses[act.actionId] = "expired";
-                } else {
-                    initialStatuses[act.actionId] = "idle";
-                }
-
-                if (act.agentHook?.requirePayload) {
-                    initialPayloads[act.actionId] = { ...act.agentHook.requirePayload };
-                }
-            });
-
-            setActionStatuses((prev) => ({ ...prev, ...initialStatuses }));
-            setEditablePayloads((prev) => ({ ...prev, ...initialPayloads }));
-            setMessages((prev) => [...prev, result]);
         } catch (e) {
             if (e instanceof Error) console.log(e.message);
         } finally {
@@ -152,7 +174,7 @@ export function AgentPage() {
         }
     }
 
-    function handlePayloadChange(actionId: number, fieldKey: string, value: string) {
+    function handlePayloadChange(actionId: string, fieldKey: string, value: string) {
         setEditablePayloads((prev) => ({
             ...prev,
             [actionId]: {
@@ -178,7 +200,7 @@ export function AgentPage() {
         }
     }
 
-    async function executeHook(actionId: number, hook: AgentHook, pin?: string) {
+    async function executeHook(actionId: string, hook: AgentHook, pin?: string) {
         setActionStatuses((prev) => ({ ...prev, [actionId]: "executing" }));
         setActionErrors((prev) => ({ ...prev, [actionId]: "" }));
 
@@ -208,12 +230,12 @@ export function AgentPage() {
                         agentActions: msg.agentActions.map((act) =>
                             act.actionId === actionId
                                 ? {
-                                      ...act,
-                                      description: newDescription || act.description,
-                                      formDisplay: responseAction.formDisplay || act.formDisplay,
-                                      agentHook: newHook,
-                                      status: responseStatus || "Pending",
-                                  }
+                                    ...act,
+                                    description: newDescription || act.description,
+                                    formDisplay: responseAction.formDisplay || act.formDisplay,
+                                    agentHook: newHook,
+                                    status: responseStatus || "Pending",
+                                }
                                 : act
                         ),
                     }))
@@ -241,12 +263,12 @@ export function AgentPage() {
                     agentActions: msg.agentActions.map((act) =>
                         act.actionId === actionId
                             ? {
-                                  ...act,
-                                  description: newDescription || act.description,
-                                  formDisplay: responseAction.formDisplay || act.formDisplay,
-                                  agentHook: undefined,
-                                  status: responseStatus || "Completed",
-                              }
+                                ...act,
+                                description: newDescription || act.description,
+                                formDisplay: responseAction.formDisplay || act.formDisplay,
+                                agentHook: undefined,
+                                status: responseStatus || "Completed",
+                            }
                             : act
                     ),
                 }))
@@ -260,11 +282,11 @@ export function AgentPage() {
         }
     }
 
-    function handleCancelAction(actionId: number) {
+    function handleCancelAction(actionId: string) {
         setActionStatuses((prev) => ({ ...prev, [actionId]: "cancelled" }));
     }
 
-    function handleDeleteAction(actionId: number) {
+    function handleDeleteAction(actionId: string) {
         setMessages((prevMessages) =>
             prevMessages
                 .map((msg) => ({
@@ -340,7 +362,7 @@ export function AgentPage() {
 
                                 const currentRequirePayload = editablePayloads[action.actionId] || {};
                                 const formDisplay = (action as { formDisplay?: Record<string, unknown> }).formDisplay || {};
-                                
+
                                 const hasRequireFields = Object.keys(currentRequirePayload).length > 0;
                                 const hasDisplayFields = Object.keys(formDisplay).length > 0;
                                 const hasContent = hasRequireFields || hasDisplayFields;
