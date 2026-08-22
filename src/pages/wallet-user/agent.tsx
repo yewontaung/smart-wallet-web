@@ -74,17 +74,38 @@ export function AgentPage() {
 
     const prevMessageCountRef = useRef(0);
 
-    useEffect(() => {
-        const isNewMessageAdded = messages.length > prevMessageCountRef.current;
-        prevMessageCountRef.current = messages.length;
+    // 1. Calculate the total number of actions across all messages
+    const totalActionsCount = messages.reduce(
+        (acc, msg) => acc + (msg.agentActions?.length || 0),
+        0
+    );
 
-        if (isNewMessageAdded || loading || optimisticPrompt) {
-            messagesEndRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "end",
-            });
-        }
-    }, [messages.length, loading, optimisticPrompt]);
+    // 2. Track totalActionsCount in the dependency array
+    useEffect(() => {
+        const totalMessages = messages.length;
+        // const isNewMessageAdded = totalMessages > prevMessageCountRef.current;
+
+        // Update ref for next comparison
+        prevMessageCountRef.current = totalMessages;
+
+        // Scroll if a new message container was added, a new action arrived, or during loading
+        messagesEndRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "end",
+        });
+    }, [messages.length, totalActionsCount, loading, optimisticPrompt]);
+
+    // useEffect(() => {
+    //     const isNewMessageAdded = messages.length > prevMessageCountRef.current;
+    //     prevMessageCountRef.current = messages.length;
+
+    //     if (isNewMessageAdded || loading || optimisticPrompt) {
+    //         messagesEndRef.current?.scrollIntoView({
+    //             behavior: "smooth",
+    //             block: "end",
+    //         });
+    //     }
+    // }, [messages.length, loading, optimisticPrompt]);
 
     useEffect(() => {
         const updateViewport = () => {
@@ -138,24 +159,113 @@ export function AgentPage() {
         return { initialStatuses, initialPayloads };
     }
 
-    useEffect(() => {
+    // useEffect(() => {
 
-        const unsubcribe = wsEventBus.on("ai_response", (payload) => {
-            console.log("doing ai response")
-            const result = payload as AgentResponse
-            // if (!result?.agentActions || !Array.isArray(result.agentActions)) {
-            //     return;
-            // }
-            console.log("continue...")
-            const { initialStatuses, initialPayloads } = processAgentActions(result.agentActions)
-            setActionStatuses((prev) => ({ ...prev, ...initialStatuses }));
-            setEditablePayloads((prev) => ({ ...prev, ...initialPayloads }));
-            setMessages((prev) => [...prev, result]);
+    //     const unsubcribe = wsEventBus.on("ai_response", (payload) => {
+    //         console.log("doing ai response")
+    //         const result = payload as AgentResponse
+    //         // if (!result?.agentActions || !Array.isArray(result.agentActions)) {
+    //         //     return;
+    //         // }
+    //         console.log("continue...")
+    //         const { initialStatuses, initialPayloads } = processAgentActions(result.agentActions)
+    //         setActionStatuses((prev) => ({ ...prev, ...initialStatuses }));
+    //         setEditablePayloads((prev) => ({ ...prev, ...initialPayloads }));
+    //         setMessages((prev) => [...prev, result]);
+    //         setLoading(false);
+    //         setOptimisticPrompt(null);
+    //     })
+    //     return () => unsubcribe()
+    // }, [])
+
+    useEffect(() => {
+        // Listener A: Initial AI Response Shell
+        const unsubscribeAiResponse = wsEventBus.on("ai_response", (payload) => {
+            console.log("ai_response payload received:", payload);
+            const result = payload as AgentResponse;
+
+            const actions = result?.agentActions || [];
+
+            if (actions.length > 0) {
+                const { initialStatuses, initialPayloads } = processAgentActions(actions);
+                setActionStatuses((prev) => ({ ...prev, ...initialStatuses }));
+                setEditablePayloads((prev) => ({ ...prev, ...initialPayloads }));
+            }
+
+            setMessages((prev) => {
+                const msgId = result.messageId;
+                const exists = prev.some((msg) => msg.messageId === msgId);
+
+                if (exists) {
+                    return prev.map((msg) =>
+                        msg.messageId === msgId
+                            ? {
+                                ...msg,
+                                ...result,
+                                // Preserve actions if agent_action already added them early!
+                                agentActions: msg.agentActions?.length ? msg.agentActions : actions
+                            }
+                            : msg
+                    );
+                }
+                return [...prev, { ...result, agentActions: actions }];
+            });
+
             setLoading(false);
             setOptimisticPrompt(null);
-        })
-        return () => unsubcribe()
-    }, [])
+        });
+
+        // Listener B: Streamed Individual Agent Actions
+        const unsubscribeAgentAction = wsEventBus.on("agent_action", (payload) => {
+
+            const action = payload as AgentAction;
+            const targetMessageId = action?.messageId;
+
+            if (!targetMessageId) return;
+
+            const { initialStatuses, initialPayloads } = processAgentActions([action]);
+            setActionStatuses((prev) => ({ ...prev, ...initialStatuses }));
+            setEditablePayloads((prev) => ({ ...prev, ...initialPayloads }));
+
+            setMessages((prev) => {
+                const parentExists = prev.some((msg) => msg.messageId === targetMessageId);
+
+                // FIX: If agent_action arrives BEFORE ai_response, create the message container shell!
+                if (!parentExists) {
+                    console.warn(`Parent message ${targetMessageId} not in state yet. Creating container shell.`);
+                    return [
+                        ...prev,
+                        {
+                            messageId: targetMessageId,
+                            prompt: "", // Will be updated when ai_response arrives
+                            agentActions: [action],
+                        } as AgentResponse,
+                    ];
+                }
+
+                // Normal update if parent message already exists
+                return prev.map((msg) => {
+                    if (msg.messageId === targetMessageId) {
+                        const currentActions = msg.agentActions || [];
+                        const isDuplicate = currentActions.some((a) => a.actionId === action.actionId);
+
+                        if (isDuplicate) return msg;
+
+                        return {
+                            ...msg,
+                            agentActions: [...currentActions, action],
+                        };
+                    }
+                    return msg;
+                });
+            });
+        });
+
+        return () => {
+            unsubscribeAiResponse();
+            unsubscribeAgentAction();
+        };
+    }, []);
 
     async function handleSend(text: string) {
         setOptimisticPrompt(text);

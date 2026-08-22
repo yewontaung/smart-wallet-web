@@ -33,7 +33,6 @@ export function useWebSocket<T = unknown>(
             try {
                 const parsed = JSON.parse(event.data);
                 setLastJsonMessage(parsed);
-                console.log(parsed)
             } catch (err) {
                 console.error("Failed to parse WS frame JSON:", err);
             }

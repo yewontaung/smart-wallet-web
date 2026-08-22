@@ -9,6 +9,7 @@ export type AgentHook = {
 };
 
 export type AgentAction = {
+  messageId: string;
   actionId: string;
   intent: string;
   status: AIActionStatus
