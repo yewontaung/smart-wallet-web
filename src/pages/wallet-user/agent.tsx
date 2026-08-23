@@ -323,8 +323,7 @@ export function AgentPage() {
         try {
             const responseAction = await privateRequest<AgentAction>(hook.hookUrl, {
                 method: hook.hookMethod,
-                body: {
-                    payload: mergedPayload,
+                body: {...mergedPayload,
                     ...(pin ? { pin } : {}),
                 },
             });
