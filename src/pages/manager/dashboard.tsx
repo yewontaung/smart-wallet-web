@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import {
     ArrowUpRight,
     Building2,
@@ -8,83 +9,197 @@ import {
     Wallet,
 } from "lucide-react"
 
-const stats = [
-    {
-        title: "Total Accounts",
-        value: "1,248",
-        change: "+12.5%",
-        description: "from last month",
-        icon: Users,
-    },
-    {
-        title: "Total Balance",
-        value: "₨ 48.6M",
-        change: "+8.2%",
-        description: "from last month",
-        icon: Wallet,
-    },
-    {
-        title: "Businesses",
-        value: "186",
-        change: "+6.4%",
-        description: "from last month",
-        icon: Building2,
-    },
-    {
-        title: "Transactions",
-        value: "8,492",
-        change: "+18.7%",
-        description: "from last month",
-        icon: TrendingUp,
-    },
-]
+import {
+    getManagerAccounts,
+    type AccountListResponse,
+} from "../../services/manager/account.service"
 
-const recentAccounts = [
-    {
-        name: "Aung Aung",
-        phone: "09 123 456 789",
-        status: "Verified",
-        balance: "125,000",
-    },
-    {
-        name: "Su Su",
-        phone: "09 987 654 321",
-        status: "Pending",
-        balance: "50,000",
-    },
-    {
-        name: "Mg Mg",
-        phone: "09 555 123 456",
-        status: "Verified",
-        balance: "75,000",
-    },
-    {
-        name: "Hnin Ei",
-        phone: "09 777 888 999",
-        status: "Freeze",
-        balance: "32,500",
-    },
-]
+import {
+    getManagerBusinesses,
+    type BusinessListResponse,
+} from "../../services/manager/business.service"
 
-const recentBusinesses = [
-    {
-        name: "Golden Café",
-        type: "Standalone",
-        status: "Open",
-    },
-    {
-        name: "Yangon Food Group",
-        type: "Organization",
-        status: "Open",
-    },
-    {
-        name: "Smart Fashion",
-        type: "Standalone",
-        status: "Closed",
-    },
-]
+import {
+    getManagerTransactions,
+    type TransactionListResponse,
+} from "../../services/manager/transaction.service"
+
+function formatNumber(value: number): string {
+    return new Intl.NumberFormat("en-US").format(value)
+}
+
+function formatCurrency(value: number): string {
+    return `₨ ${formatNumber(value)}`
+}
+
+function getInitial(name: string): string {
+    return name?.charAt(0).toUpperCase() || "?"
+}
+
+function getAccountStatusClass(status: string): string {
+    switch (status.toLowerCase()) {
+        case "verified":
+            return "bg-emerald-500/10 text-emerald-400"
+
+        case "pending":
+            return "bg-amber-500/10 text-amber-400"
+
+        case "freeze":
+        case "frozen":
+            return "bg-red-500/10 text-red-400"
+
+        default:
+            return "bg-zinc-800 text-zinc-400"
+    }
+}
+
+function getBusinessStatusClass(status: string): string {
+    return status.toLowerCase() === "open"
+        ? "bg-emerald-500/10 text-emerald-400"
+        : "bg-zinc-800 text-zinc-500"
+}
 
 export default function DashboardPage() {
+    const [accountsResponse, setAccountsResponse] =
+        useState<AccountListResponse | null>(null)
+
+    const [businessesResponse, setBusinessesResponse] =
+        useState<BusinessListResponse | null>(null)
+
+    const [transactionsResponse, setTransactionsResponse] =
+        useState<TransactionListResponse | null>(null)
+
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => {
+        let cancelled = false
+
+        async function loadDashboard() {
+            try {
+                setLoading(true)
+                setError(null)
+
+                const [
+                    accountsData,
+                    businessesData,
+                    transactionsData,
+                ] = await Promise.all([
+                    getManagerAccounts(),
+                    getManagerBusinesses(),
+                    getManagerTransactions(),
+                ])
+
+                if (cancelled) {
+                    return
+                }
+
+                setAccountsResponse(accountsData)
+                setBusinessesResponse(businessesData)
+                setTransactionsResponse(transactionsData)
+            } catch (err) {
+                if (cancelled) {
+                    return
+                }
+
+                console.error(
+                    "Failed to load manager dashboard:",
+                    err,
+                )
+
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to load dashboard data.",
+                )
+            } finally {
+                if (!cancelled) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        loadDashboard()
+
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
+    /*
+     * Real API data
+     */
+    const accounts = accountsResponse?.items ?? []
+    const businesses = businessesResponse?.items ?? []
+    const transactions = transactionsResponse?.items ?? []
+
+    /*
+     * Real totals returned by backend
+     */
+    const totalAccounts = accountsResponse?.total ?? 0
+    const totalBusinesses = businessesResponse?.total ?? 0
+    const totalTransactions = transactionsResponse?.total ?? 0
+
+    /*
+     * Calculate total balance from real account data
+     */
+    const totalBalance = accounts.reduce(
+        (sum, account) =>
+            sum + Number(account.currentBalance || 0),
+        0,
+    )
+
+    /*
+     * Calculate account statuses from real API data
+     */
+    const verifiedAccounts = accounts.filter(
+        (account) =>
+            account.accountStatus.toLowerCase() === "verified",
+    ).length
+
+    const pendingAccounts = accounts.filter(
+        (account) =>
+            account.accountStatus.toLowerCase() === "pending",
+    ).length
+
+    /*
+     * Calculate open businesses from real API data
+     */
+    const openBusinesses = businesses.filter(
+        (business) =>
+            business.status.toLowerCase() === "open",
+    ).length
+
+    /*
+     * Dashboard statistic cards
+     */
+    const stats = [
+        {
+            title: "Total Accounts",
+            value: formatNumber(totalAccounts),
+            description: "Registered wallet accounts",
+            icon: Users,
+        },
+        {
+            title: "Total Balance",
+            value: formatCurrency(totalBalance),
+            description: "Current balance",
+            icon: Wallet,
+        },
+        {
+            title: "Businesses",
+            value: formatNumber(totalBusinesses),
+            description: "Registered businesses",
+            icon: Building2,
+        },
+        {
+            title: "Transactions",
+            value: formatNumber(totalTransactions),
+            description: "Recorded transactions",
+            icon: TrendingUp,
+        },
+    ]
+
     return (
         <div className="space-y-6">
             {/* Welcome */}
@@ -99,15 +214,28 @@ export default function DashboardPage() {
                     </h1>
 
                     <p className="mt-2 max-w-xl text-sm text-zinc-400">
-                        Here's an overview of your Smart Wallet platform.
-                        Monitor accounts, businesses and activity from one
-                        place.
+                        Here's an overview of your Smart Wallet
+                        platform. Monitor accounts, businesses and
+                        activity from one place.
                     </p>
                 </div>
 
                 <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-sky-500/10 blur-3xl" />
                 <div className="absolute -bottom-20 right-32 h-40 w-40 rounded-full bg-indigo-500/10 blur-3xl" />
             </section>
+
+            {/* Error */}
+            {error && (
+                <section className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
+                    <p className="text-sm font-medium text-red-400">
+                        Failed to load dashboard
+                    </p>
+
+                    <p className="mt-1 text-sm text-red-300/70">
+                        {error}
+                    </p>
+                </section>
+            )}
 
             {/* Statistics */}
             <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -124,9 +252,9 @@ export default function DashboardPage() {
                                     <Icon className="h-5 w-5 text-sky-400" />
                                 </div>
 
-                                <div className="flex items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-400">
+                                <div className="flex items-center gap-1 rounded-full bg-sky-500/10 px-2 py-1 text-xs font-medium text-sky-400">
                                     <ArrowUpRight className="h-3.5 w-3.5" />
-                                    {stat.change}
+                                    Live
                                 </div>
                             </div>
 
@@ -135,7 +263,7 @@ export default function DashboardPage() {
                             </p>
 
                             <p className="mt-1 text-2xl font-semibold text-white">
-                                {stat.value}
+                                {loading ? "..." : stat.value}
                             </p>
 
                             <p className="mt-1 text-xs text-zinc-600">
@@ -192,55 +320,85 @@ export default function DashboardPage() {
                             </thead>
 
                             <tbody className="divide-y divide-zinc-800">
-                                {recentAccounts.map((account) => (
-                                    <tr
-                                        key={account.phone}
-                                        className="transition hover:bg-zinc-800/40"
-                                    >
-                                        <td className="px-5 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-sky-400">
-                                                    {account.name
-                                                        .charAt(0)
-                                                        .toUpperCase()}
-                                                </div>
-
-                                                <span className="font-medium text-zinc-200">
-                                                    {account.name}
-                                                </span>
-                                            </div>
-                                        </td>
-
-                                        <td className="px-5 py-4 text-zinc-500">
-                                            {account.phone}
-                                        </td>
-
-                                        <td className="px-5 py-4">
-                                            <span
-                                                className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                    account.status === "Verified"
-                                                        ? "bg-emerald-500/10 text-emerald-400"
-                                                        : account.status ===
-                                                            "Freeze"
-                                                          ? "bg-red-500/10 text-red-400"
-                                                          : "bg-amber-500/10 text-amber-400"
-                                                }`}
-                                            >
-                                                {account.status}
-                                            </span>
-                                        </td>
-
-                                        <td className="px-5 py-4 text-right font-medium text-zinc-200">
-                                            {account.balance}
+                                {loading && (
+                                    <tr>
+                                        <td
+                                            colSpan={4}
+                                            className="px-5 py-8 text-center text-sm text-zinc-500"
+                                        >
+                                            Loading accounts...
                                         </td>
                                     </tr>
-                                ))}
+                                )}
+
+                                {!loading &&
+                                    accounts.length === 0 && (
+                                        <tr>
+                                            <td
+                                                colSpan={4}
+                                                className="px-5 py-8 text-center text-sm text-zinc-500"
+                                            >
+                                                No accounts found.
+                                            </td>
+                                        </tr>
+                                    )}
+
+                                {!loading &&
+                                    accounts.slice(0, 5).map(
+                                        (account) => (
+                                            <tr
+                                                key={account.userId}
+                                                className="transition hover:bg-zinc-800/40"
+                                            >
+                                                <td className="px-5 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-xs font-semibold text-sky-400">
+                                                            {getInitial(
+                                                                account.fullName,
+                                                            )}
+                                                        </div>
+
+                                                        <span className="font-medium text-zinc-200">
+                                                            {
+                                                                account.fullName
+                                                            }
+                                                        </span>
+                                                    </div>
+                                                </td>
+
+                                                <td className="px-5 py-4 text-zinc-500">
+                                                    {account.phoneNo}
+                                                </td>
+
+                                                <td className="px-5 py-4">
+                                                    <span
+                                                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${getAccountStatusClass(
+                                                            account.accountStatus,
+                                                        )}`}
+                                                    >
+                                                        {
+                                                            account.accountStatus
+                                                        }
+                                                    </span>
+                                                </td>
+
+                                                <td className="px-5 py-4 text-right font-medium text-zinc-200">
+                                                    {formatNumber(
+                                                        Number(
+                                                            account.currentBalance ||
+                                                                0,
+                                                        ),
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ),
+                                    )}
                             </tbody>
                         </table>
                     </div>
                 </section>
 
-                {/* Quick Overview */}
+                {/* Platform Overview */}
                 <section className="rounded-2xl border border-zinc-800 bg-zinc-900">
                     <div className="border-b border-zinc-800 px-5 py-4">
                         <h2 className="font-semibold text-zinc-100">
@@ -253,6 +411,7 @@ export default function DashboardPage() {
                     </div>
 
                     <div className="space-y-5 p-5">
+                        {/* Verified */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10">
@@ -271,10 +430,13 @@ export default function DashboardPage() {
                             </div>
 
                             <span className="font-semibold text-zinc-100">
-                                1,084
+                                {loading
+                                    ? "..."
+                                    : verifiedAccounts}
                             </span>
                         </div>
 
+                        {/* Pending */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10">
@@ -293,10 +455,13 @@ export default function DashboardPage() {
                             </div>
 
                             <span className="font-semibold text-zinc-100">
-                                96
+                                {loading
+                                    ? "..."
+                                    : pendingAccounts}
                             </span>
                         </div>
 
+                        {/* Open Businesses */}
                         <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-sky-500/10">
@@ -315,30 +480,33 @@ export default function DashboardPage() {
                             </div>
 
                             <span className="font-semibold text-zinc-100">
-                                172
+                                {loading
+                                    ? "..."
+                                    : openBusinesses}
                             </span>
                         </div>
 
+                        {/* Transactions */}
                         <div className="border-t border-zinc-800 pt-5">
-                            <div className="mb-2 flex items-center justify-between">
+                            <div className="flex items-center justify-between">
                                 <span className="text-xs text-zinc-500">
-                                    Platform activity
+                                    Total transactions
                                 </span>
 
-                                <span className="text-xs font-medium text-emerald-400">
-                                    82%
+                                <span className="text-xs font-medium text-sky-400">
+                                    {loading
+                                        ? "..."
+                                        : formatNumber(
+                                              totalTransactions,
+                                          )}
                                 </span>
-                            </div>
-
-                            <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
-                                <div className="h-full w-[82%] rounded-full bg-sky-500" />
                             </div>
                         </div>
                     </div>
                 </section>
             </div>
 
-            {/* Businesses */}
+            {/* Recent Businesses */}
             <section className="rounded-2xl border border-zinc-800 bg-zinc-900">
                 <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
                     <div>
@@ -360,36 +528,193 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="grid gap-3 p-5 md:grid-cols-3">
-                    {recentBusinesses.map((business) => (
-                        <div
-                            key={business.name}
-                            className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-4 transition hover:border-zinc-700 hover:bg-zinc-950"
-                        >
-                            <div className="flex items-start justify-between">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10">
-                                    <Building2 className="h-5 w-5 text-sky-400" />
-                                </div>
-
-                                <span
-                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                                        business.status === "Open"
-                                            ? "bg-emerald-500/10 text-emerald-400"
-                                            : "bg-zinc-800 text-zinc-500"
-                                    }`}
-                                >
-                                    {business.status}
-                                </span>
-                            </div>
-
-                            <h3 className="mt-4 font-medium text-zinc-100">
-                                {business.name}
-                            </h3>
-
-                            <p className="mt-1 text-xs text-zinc-500">
-                                {business.type}
-                            </p>
+                    {loading && (
+                        <div className="py-8 text-center text-sm text-zinc-500 md:col-span-3">
+                            Loading businesses...
                         </div>
-                    ))}
+                    )}
+
+                    {!loading &&
+                        businesses.length === 0 && (
+                            <div className="py-8 text-center text-sm text-zinc-500 md:col-span-3">
+                                No businesses found.
+                            </div>
+                        )}
+
+                    {!loading &&
+                        businesses.slice(0, 3).map(
+                            (business) => (
+                                <div
+                                    key={business.businessId}
+                                    className="rounded-xl border border-zinc-800 bg-zinc-950/50 p-4 transition hover:border-zinc-700 hover:bg-zinc-950"
+                                >
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-500/10">
+                                            <Building2 className="h-5 w-5 text-sky-400" />
+                                        </div>
+
+                                        <span
+                                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${getBusinessStatusClass(
+                                                business.status,
+                                            )}`}
+                                        >
+                                            {business.status}
+                                        </span>
+                                    </div>
+
+                                    <h3 className="mt-4 font-medium text-zinc-100">
+                                        {
+                                            business.qualifiedName
+                                        }
+                                    </h3>
+
+                                    <p className="mt-1 text-xs text-zinc-500">
+                                        {
+                                            business.businessType
+                                        }
+                                    </p>
+                                </div>
+                            ),
+                        )}
+                </div>
+            </section>
+
+            {/* Recent Transactions */}
+            <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
+                <div className="flex items-center justify-between border-b border-zinc-800 px-5 py-4">
+                    <div>
+                        <h2 className="font-semibold text-zinc-100">
+                            Recent Transactions
+                        </h2>
+
+                        <p className="mt-1 text-xs text-zinc-500">
+                            Latest wallet activity
+                        </p>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="border-b border-zinc-800 bg-zinc-950/40">
+                            <tr>
+                                <th className="px-5 py-3 font-medium text-zinc-500">
+                                    Operation
+                                </th>
+
+                                <th className="px-5 py-3 font-medium text-zinc-500">
+                                    Sender
+                                </th>
+
+                                <th className="px-5 py-3 font-medium text-zinc-500">
+                                    Receiver
+                                </th>
+
+                                <th className="px-5 py-3 text-right font-medium text-zinc-500">
+                                    Amount
+                                </th>
+
+                                <th className="px-5 py-3 font-medium text-zinc-500">
+                                    Status
+                                </th>
+                            </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-zinc-800">
+                            {loading && (
+                                <tr>
+                                    <td
+                                        colSpan={5}
+                                        className="px-5 py-8 text-center text-sm text-zinc-500"
+                                    >
+                                        Loading transactions...
+                                    </td>
+                                </tr>
+                            )}
+
+                            {!loading &&
+                                transactions.length === 0 && (
+                                    <tr>
+                                        <td
+                                            colSpan={5}
+                                            className="px-5 py-8 text-center text-sm text-zinc-500"
+                                        >
+                                            No transactions found.
+                                        </td>
+                                    </tr>
+                                )}
+
+                            {!loading &&
+                                transactions
+                                    .slice(0, 5)
+                                    .map((transaction) => (
+                                        <tr
+                                            key={transaction.trxId}
+                                            className="transition hover:bg-zinc-800/40"
+                                        >
+                                            <td className="px-5 py-4">
+                                                <div>
+                                                    <p className="font-medium text-zinc-200">
+                                                        {
+                                                            transaction.operation
+                                                        }
+                                                    </p>
+
+                                                    {transaction.note && (
+                                                        <p className="mt-1 text-xs text-zinc-500">
+                                                            {
+                                                                transaction.note
+                                                            }
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            <td className="px-5 py-4 text-zinc-400">
+                                                {
+                                                    transaction
+                                                        .senderWallet
+                                                        .fullName
+                                                }
+                                            </td>
+
+                                            <td className="px-5 py-4 text-zinc-400">
+                                                {
+                                                    transaction
+                                                        .receiverWallet
+                                                        .fullName
+                                                }
+                                            </td>
+
+                                            <td className="px-5 py-4 text-right font-medium text-zinc-200">
+                                                {formatCurrency(
+                                                    Number(
+                                                        transaction.amount ||
+                                                            0,
+                                                    ),
+                                                )}
+                                            </td>
+
+                                            <td className="px-5 py-4">
+                                                <span
+                                                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                                                        transaction.status.toLowerCase() ===
+                                                        "completed"
+                                                            ? "bg-emerald-500/10 text-emerald-400"
+                                                            : transaction.status.toLowerCase() ===
+                                                                "pending"
+                                                              ? "bg-amber-500/10 text-amber-400"
+                                                              : "bg-red-500/10 text-red-400"
+                                                    }`}
+                                                >
+                                                    {
+                                                        transaction.status
+                                                    }
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))}
+                        </tbody>
+                    </table>
                 </div>
             </section>
         </div>

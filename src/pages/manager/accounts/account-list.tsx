@@ -19,124 +19,7 @@ import { useQuery } from "@tanstack/react-query"
 import type { AccountListItem } from "../../../schemas/manager/outputs"
 import type { AccountSearch } from "../../../schemas/manager/searches"
 import type { WalletUserStatus } from "../../../schemas/enums"
-
-const mockAccounts: AccountListItem[] = [
-    {
-        userId: 1,
-        fullName: "Aung Aung",
-        nickName: "Aung",
-        accountType: "",
-        accountStatus: "Verified",
-        phoneNo: "09 123 456 789",
-        createdAt: "2026-08-10T10:30:00",
-        approvedAt: "2026-08-10T11:00:00",
-        approverId: 100,
-        approverFullName: "Manager",
-        currentBalance: 125000,
-        lastBalance: 100000,
-    },
-    {
-        userId: 2,
-        fullName: "Su Su",
-        nickName: "Su",
-        accountType: "",
-        accountStatus: "Pending",
-        phoneNo: "09 987 654 321",
-        createdAt: "2026-08-12T09:15:00",
-        currentBalance: 50000,
-        lastBalance: 50000,
-    },
-    {
-        userId: 3,
-        fullName: "Mg Mg",
-        nickName: "Mg",
-        accountType: "",
-        accountStatus: "Freeze",
-        phoneNo: "09 555 123 456",
-        createdAt: "2026-08-14T14:20:00",
-        approvedAt: "2026-08-14T15:00:00",
-        approverId: 101,
-        approverFullName: "Admin",
-        currentBalance: 75000,
-        lastBalance: 80000,
-    },
-]
-
-async function getAccounts(
-    search: AccountSearch,
-): Promise<{
-    page: number
-    size: number
-    items: AccountListItem[]
-    total: number
-    pages: number
-}> {
-    // TODO: Replace this mock implementation with the real backend API.
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    const query = search.q?.toLowerCase().trim()
-
-    const filtered = mockAccounts.filter((account) => {
-        if (
-            query &&
-            !account.fullName.toLowerCase().includes(query) &&
-            !account.phoneNo.toLowerCase().includes(query) &&
-            !account.userId.toString().includes(query)
-        ) {
-            return false
-        }
-
-        if (
-            search.accountStatus &&
-            account.accountStatus !== search.accountStatus
-        ) {
-            return false
-        }
-
-        if (
-            search.balanceFrom !== undefined &&
-            account.currentBalance < search.balanceFrom
-        ) {
-            return false
-        }
-
-        if (
-            search.balanceTo !== undefined &&
-            account.currentBalance > search.balanceTo
-        ) {
-            return false
-        }
-
-        if (search.createdFrom) {
-            const created = new Date(account.createdAt)
-
-            if (created < search.createdFrom) {
-                return false
-            }
-        }
-
-        if (search.createdTo) {
-            const created = new Date(account.createdAt)
-
-            const endOfDay = new Date(search.createdTo)
-            endOfDay.setHours(23, 59, 59, 999)
-
-            if (created > endOfDay) {
-                return false
-            }
-        }
-
-        return true
-    })
-
-    return {
-        page: 1,
-        size: filtered.length,
-        items: filtered,
-        total: filtered.length,
-        pages: 1,
-    }
-}
+import { getManagerAccounts } from "../../../services/manager/account.service"
 
 function formatMoney(value: number) {
     return `${value.toLocaleString()} MMK`
@@ -190,33 +73,56 @@ export default function AccountListPage() {
     const [form, setForm] = useState<AccountSearch>({})
     const [showFilters, setShowFilters] = useState(false)
 
-    const { data, isLoading } = useQuery({
+    const {
+        data,
+        isLoading,
+        isError,
+        error,
+    } = useQuery({
         queryKey: ["manager-accounts", search],
-        queryFn: () => getAccounts(search),
+        queryFn: () => getManagerAccounts(search),
     })
 
-    const accounts = data?.items ?? []
+    /*
+     * Important:
+     * Do NOT use:
+     *
+     * const accounts = data?.items ?? []
+     *
+     * because your lint rule may complain about the
+     * logical expression being recreated.
+     *
+     * useMemo keeps the reference stable.
+     */
+    const accounts = useMemo<AccountListItem[]>(
+        () => data?.items ?? [],
+        [data?.items],
+    )
 
+    /*
+     * Statistics are calculated from the REAL backend data.
+     * There is no mockAccounts anymore.
+     */
     const statistics = useMemo(() => {
-        const verified = mockAccounts.filter(
+        const verified = accounts.filter(
             (account) => account.accountStatus === "Verified",
         ).length
 
-        const pending = mockAccounts.filter(
+        const pending = accounts.filter(
             (account) => account.accountStatus === "Pending",
         ).length
 
-        const frozen = mockAccounts.filter(
+        const frozen = accounts.filter(
             (account) => account.accountStatus === "Freeze",
         ).length
 
         return {
-            total: mockAccounts.length,
+            total: data?.total ?? 0,
             verified,
             pending,
             frozen,
         }
-    }, [])
+    }, [accounts, data?.total])
 
     const handleSearch = () => {
         setSearch({
@@ -378,13 +284,15 @@ export default function AccountListPage() {
                         </h2>
 
                         <p className="mt-1 text-xs text-zinc-500">
-                            Search by name, phone number or account ID.
+                            Search by name or phone number 
                         </p>
                     </div>
 
                     <button
                         type="button"
-                        onClick={() => setShowFilters((value) => !value)}
+                        onClick={() =>
+                            setShowFilters((value) => !value)
+                        }
                         className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm transition ${
                             showFilters
                                 ? "border-sky-500/30 bg-sky-500/10 text-sky-400"
@@ -405,7 +313,10 @@ export default function AccountListPage() {
                             type="text"
                             value={form.q ?? ""}
                             onChange={(event) =>
-                                updateForm("q", event.target.value)
+                                updateForm(
+                                    "q",
+                                    event.target.value,
+                                )
                             }
                             onKeyDown={(event) => {
                                 if (event.key === "Enter") {
@@ -427,7 +338,9 @@ export default function AccountListPage() {
                                 </label>
 
                                 <select
-                                    value={form.accountStatus ?? ""}
+                                    value={
+                                        form.accountStatus ?? ""
+                                    }
                                     onChange={(event) =>
                                         updateForm(
                                             "accountStatus",
@@ -439,14 +352,21 @@ export default function AccountListPage() {
                                     }
                                     className="w-full rounded-xl border border-zinc-800 bg-zinc-950 px-3 py-3 text-sm text-zinc-200 outline-none focus:border-sky-500/50"
                                 >
-                                    <option value="">All statuses</option>
+                                    <option value="">
+                                        All statuses
+                                    </option>
+
                                     <option value="Verified">
                                         Verified
                                     </option>
+
                                     <option value="Pending">
                                         Pending
                                     </option>
-                                    <option value="Freeze">Frozen</option>
+
+                                    <option value="Freeze">
+                                        Frozen
+                                    </option>
                                 </select>
                             </div>
 
@@ -459,12 +379,17 @@ export default function AccountListPage() {
                                 <input
                                     type="number"
                                     min="0"
-                                    value={form.balanceFrom ?? ""}
+                                    value={
+                                        form.balanceFrom ?? ""
+                                    }
                                     onChange={(event) =>
                                         updateForm(
                                             "balanceFrom",
                                             event.target.value
-                                                ? Number(event.target.value)
+                                                ? Number(
+                                                      event.target
+                                                          .value,
+                                                  )
                                                 : undefined,
                                         )
                                     }
@@ -482,12 +407,17 @@ export default function AccountListPage() {
                                 <input
                                     type="number"
                                     min="0"
-                                    value={form.balanceTo ?? ""}
+                                    value={
+                                        form.balanceTo ?? ""
+                                    }
                                     onChange={(event) =>
                                         updateForm(
                                             "balanceTo",
                                             event.target.value
-                                                ? Number(event.target.value)
+                                                ? Number(
+                                                      event.target
+                                                          .value,
+                                                  )
                                                 : undefined,
                                         )
                                     }
@@ -600,8 +530,33 @@ export default function AccountListPage() {
                     </div>
                 </div>
 
-                {/* Loading */}
-                {isLoading ? (
+                {/* Error */}
+                {isError ? (
+                    <div className="flex flex-col items-center justify-center py-20">
+                        <div className="rounded-2xl bg-red-500/10 p-4">
+                            <Users className="h-7 w-7 text-red-400" />
+                        </div>
+
+                        <h3 className="mt-4 font-medium text-red-300">
+                            Failed to load accounts
+                        </h3>
+
+                        <p className="mt-2 max-w-md text-center text-sm text-zinc-500">
+                            {error instanceof Error
+                                ? error.message
+                                : "Unable to connect to the backend."}
+                        </p>
+
+                        <button
+                            type="button"
+                            onClick={() => window.location.reload()}
+                            className="mt-5 rounded-xl border border-zinc-700 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                ) : isLoading ? (
+                    /* Loading */
                     <div className="flex flex-col items-center justify-center py-20">
                         <div className="h-8 w-8 animate-spin rounded-full border-2 border-zinc-700 border-t-sky-400" />
 
@@ -610,6 +565,7 @@ export default function AccountListPage() {
                         </p>
                     </div>
                 ) : accounts.length === 0 ? (
+                    /* Empty */
                     <div className="flex flex-col items-center justify-center py-20">
                         <div className="rounded-2xl bg-zinc-800 p-4">
                             <Users className="h-7 w-7 text-zinc-500" />
@@ -624,6 +580,7 @@ export default function AccountListPage() {
                         </p>
                     </div>
                 ) : (
+                    /* Table */
                     <div className="overflow-x-auto">
                         <table className="w-full min-w-200 text-left">
                             <thead>
@@ -656,9 +613,10 @@ export default function AccountListPage() {
 
                             <tbody className="divide-y divide-zinc-800/80">
                                 {accounts.map((account) => {
-                                    const statusStyle = getStatusStyle(
-                                        account.accountStatus,
-                                    )
+                                    const statusStyle =
+                                        getStatusStyle(
+                                            account.accountStatus,
+                                        )
 
                                     return (
                                         <tr
@@ -681,12 +639,16 @@ export default function AccountListPage() {
 
                                                     <div>
                                                         <p className="font-medium text-zinc-100">
-                                                            {account.fullName}
+                                                            {
+                                                                account.fullName
+                                                            }
                                                         </p>
 
                                                         <p className="mt-0.5 text-xs text-zinc-600">
                                                             ID #
-                                                            {account.userId}
+                                                            {
+                                                                account.userId
+                                                            }
                                                         </p>
                                                     </div>
                                                 </div>
@@ -706,7 +668,9 @@ export default function AccountListPage() {
                                                         className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`}
                                                     />
 
-                                                    {account.accountStatus}
+                                                    {
+                                                        account.accountStatus
+                                                    }
                                                 </span>
                                             </td>
 
@@ -759,29 +723,32 @@ export default function AccountListPage() {
                 )}
 
                 {/* Pagination */}
-                <div className="flex items-center justify-between border-t border-zinc-800 px-5 py-4">
-                    <p className="text-xs text-zinc-600">
-                        Page {data?.page ?? 1} of {data?.pages ?? 1}
-                    </p>
+                {!isError && (
+                    <div className="flex items-center justify-between border-t border-zinc-800 px-5 py-4">
+                        <p className="text-xs text-zinc-600">
+                            Page {data?.page ?? 1} of{" "}
+                            {data?.pages ?? 1}
+                        </p>
 
-                    <div className="flex gap-2">
-                        <button
-                            type="button"
-                            disabled
-                            className="rounded-lg border border-zinc-800 p-2 text-zinc-700 transition hover:bg-zinc-800"
-                        >
-                            <ChevronLeft className="h-4 w-4" />
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                disabled
+                                className="rounded-lg border border-zinc-800 p-2 text-zinc-700 transition hover:bg-zinc-800"
+                            >
+                                <ChevronLeft className="h-4 w-4" />
+                            </button>
 
-                        <button
-                            type="button"
-                            disabled
-                            className="rounded-lg border border-zinc-800 p-2 text-zinc-700 transition hover:bg-zinc-800"
-                        >
-                            <ChevronRight className="h-4 w-4" />
-                        </button>
+                            <button
+                                type="button"
+                                disabled
+                                className="rounded-lg border border-zinc-800 p-2 text-zinc-700 transition hover:bg-zinc-800"
+                            >
+                                <ChevronRight className="h-4 w-4" />
+                            </button>
+                        </div>
                     </div>
-                </div>
+                )}
             </section>
         </div>
     )
