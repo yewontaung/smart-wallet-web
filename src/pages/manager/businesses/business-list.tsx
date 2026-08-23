@@ -10,152 +10,68 @@ import {
     ArrowUpRight,
 } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
-import type { BusinessProfileListItem } from "../../../schemas/shared/outputs"
-import type { BusinessProfileSearch } from "../../../schemas/shared/searches"
-import type { BusinessType } from "../../../schemas/enums"
 
-const mockBusinesses: BusinessProfileListItem[] = [
-    {
-        businessId: 1,
-        qualifiedName: "Aung Aung Mini Mart",
-        bannerUrl: "",
-        description: "A local convenience store.",
-        businessType: "Standalone",
-        createdAt: "2026-08-05T10:30:00",
-        status: "Open",
-        owner: {
-            userId: 1,
-            fullName: "Aung Aung",
-            profileUrl: "",
-        },
-        approver: {
-            approverId: 100,
-            approvedAt: "2026-08-05T11:00:00",
-            approverFullName: "Manager",
-        },
-    },
-    {
-        businessId: 2,
-        qualifiedName: "Shwe Myanmar Restaurant",
-        bannerUrl: "",
-        description: "Traditional Myanmar food restaurant.",
-        businessType: "Organization",
-        createdAt: "2026-08-08T09:15:00",
-        status: "Open",
-        owner: {
-            userId: 2,
-            fullName: "Su Su",
-            profileUrl: "",
-        },
-        approver: {
-            approverId: 100,
-            approvedAt: "2026-08-08T10:00:00",
-            approverFullName: "Manager",
-        },
-    },
-    {
-        businessId: 3,
-        qualifiedName: "Mg Mg Electronics",
-        bannerUrl: "",
-        description: "Electronics and accessories shop.",
-        businessType: "Standalone",
-        createdAt: "2026-08-12T14:20:00",
-        status: "Closed",
-        owner: {
-            userId: 3,
-            fullName: "Mg Mg",
-            profileUrl: "",
-        },
-        approver: {
-            approverId: 101,
-            approvedAt: "2026-08-12T15:00:00",
-            approverFullName: "Admin",
-        },
-    },
-]
-
-async function getBusinesses(
-    search: BusinessProfileSearch,
-): Promise<{
-    page: number
-    size: number
-    items: BusinessProfileListItem[]
-    total: number
-    pages: number
-}> {
-    await new Promise((resolve) => setTimeout(resolve, 300))
-
-    const query = search.q?.toLowerCase().trim()
-
-    const filtered = mockBusinesses.filter((business) => {
-        if (
-            query &&
-            !business.qualifiedName.toLowerCase().includes(query) &&
-            !business.owner.fullName.toLowerCase().includes(query)
-        ) {
-            return false
-        }
-
-        if (
-            search.businessType &&
-            business.businessType !== search.businessType
-        ) {
-            return false
-        }
-
-        if (search.createdFrom) {
-            const createdDate = new Date(business.createdAt)
-            const fromDate = new Date(search.createdFrom)
-
-            if (createdDate < fromDate) {
-                return false
-            }
-        }
-
-        if (search.createdTo) {
-            const createdDate = new Date(business.createdAt)
-            const toDate = new Date(search.createdTo)
-
-            if (createdDate > toDate) {
-                return false
-            }
-        }
-
-        return true
-    })
-
-    return {
-        page: 1,
-        size: filtered.length,
-        items: filtered,
-        total: filtered.length,
-        pages: 1,
-    }
-}
+import {
+    getManagerBusinesses,
+    type BusinessSearch,
+} from "../../../services/manager/business.service"
 
 export default function BusinessListPage() {
-    const [search, setSearch] = useState<BusinessProfileSearch>({})
-    const [form, setForm] = useState<BusinessProfileSearch>({})
-
-    const { data, isLoading } = useQuery({
-        queryKey: ["manager-businesses", search],
-        queryFn: () => getBusinesses(search),
+    const [search, setSearch] = useState<BusinessSearch>({
+        page: 1,
+        size: 10,
     })
+
+    const [form, setForm] = useState<BusinessSearch>({
+        page: 1,
+        size: 10,
+    })
+
+    const { data, isLoading, isError, error } = useQuery({
+        queryKey: ["manager-businesses", search],
+        queryFn: () => getManagerBusinesses(search),
+    })
+
+    const businesses = data?.items ?? []
+
+    const openBusinesses = businesses.filter(
+        (business) =>
+            business.status.toLowerCase() === "open",
+    ).length
+
+    const organizationCount = businesses.filter(
+        (business) =>
+            business.businessType.toLowerCase() ===
+            "organization",
+    ).length
+
+    const standaloneCount = businesses.filter(
+        (business) =>
+            business.businessType.toLowerCase() ===
+            "standalone",
+    ).length
 
     const handleSearch = () => {
         setSearch({
             ...form,
+            page: 1,
+            size: 10,
         })
     }
 
     const handleReset = () => {
-        setForm({})
-        setSearch({})
+        const resetSearch: BusinessSearch = {
+            page: 1,
+            size: 10,
+        }
+
+        setForm(resetSearch)
+        setSearch(resetSearch)
     }
 
-    const updateForm = <K extends keyof BusinessProfileSearch>(
+    const updateForm = <K extends keyof BusinessSearch>(
         key: K,
-        value: BusinessProfileSearch[K],
+        value: BusinessSearch[K],
     ) => {
         setForm((current) => ({
             ...current,
@@ -163,19 +79,27 @@ export default function BusinessListPage() {
         }))
     }
 
-    const businesses = data?.items ?? []
+    const handlePreviousPage = () => {
+        if (!data || data.page <= 1) {
+            return
+        }
 
-    const openBusinesses = businesses.filter(
-        (business) => business.status === "Open",
-    ).length
+        setSearch((current) => ({
+            ...current,
+            page: data.page - 1,
+        }))
+    }
 
-    const organizationCount = businesses.filter(
-        (business) => business.businessType === "Organization",
-    ).length
+    const handleNextPage = () => {
+        if (!data || data.page >= data.pages) {
+            return
+        }
 
-    const standaloneCount = businesses.filter(
-        (business) => business.businessType === "Standalone",
-    ).length
+        setSearch((current) => ({
+            ...current,
+            page: data.page + 1,
+        }))
+    }
 
     return (
         <div className="space-y-6">
@@ -212,6 +136,21 @@ export default function BusinessListPage() {
                 </div>
             </div>
 
+            {/* Error */}
+            {isError && (
+                <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-5">
+                    <p className="text-sm font-medium text-red-400">
+                        Failed to load businesses
+                    </p>
+
+                    <p className="mt-1 text-sm text-red-300/70">
+                        {error instanceof Error
+                            ? error.message
+                            : "Unable to load business data."}
+                    </p>
+                </div>
+            )}
+
             {/* Quick Stats */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <StatCard
@@ -233,7 +172,7 @@ export default function BusinessListPage() {
                     icon={<Building2 className="h-5 w-5" />}
                     label="Organizations"
                     value={organizationCount}
-                    description="Organization accounts"
+                    description="Organization businesses"
                     valueClass="text-sky-400"
                 />
 
@@ -303,18 +242,19 @@ export default function BusinessListPage() {
                                 onChange={(event) =>
                                     updateForm(
                                         "businessType",
-                                        event.target.value
-                                            ? (event.target
-                                                  .value as BusinessType)
-                                            : undefined,
+                                        event.target.value || undefined,
                                     )
                                 }
                                 className="w-full rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-sky-500"
                             >
-                                <option value="">All types</option>
+                                <option value="">
+                                    All types
+                                </option>
+
                                 <option value="Standalone">
                                     Standalone
                                 </option>
+
                                 <option value="Organization">
                                     Organization
                                 </option>
@@ -480,22 +420,17 @@ export default function BusinessListPage() {
 
                                                 <div className="min-w-0">
                                                     <p className="font-medium text-zinc-100">
-                                                        {
-                                                            business.qualifiedName
-                                                        }
+                                                        {business.qualifiedName}
                                                     </p>
 
                                                     <p className="mt-1 max-w-xs truncate text-xs text-zinc-500">
-                                                        {
-                                                            business.description
-                                                        }
+                                                        {business.description ||
+                                                            "No description"}
                                                     </p>
 
                                                     <p className="mt-1 text-[11px] text-zinc-600">
                                                         ID:{" "}
-                                                        {
-                                                            business.businessId
-                                                        }
+                                                        {business.businessId}
                                                     </p>
                                                 </div>
                                             </div>
@@ -510,18 +445,12 @@ export default function BusinessListPage() {
 
                                                 <div>
                                                     <p className="font-medium text-zinc-200">
-                                                        {
-                                                            business.owner
-                                                                .fullName
-                                                        }
+                                                        {business.owner.fullName}
                                                     </p>
 
                                                     <p className="text-xs text-zinc-600">
                                                         User ID:{" "}
-                                                        {
-                                                            business.owner
-                                                                .userId
-                                                        }
+                                                        {business.owner.userId}
                                                     </p>
                                                 </div>
                                             </div>
@@ -545,16 +474,16 @@ export default function BusinessListPage() {
                                         <td className="px-5 py-4">
                                             <span
                                                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                                                    business.status ===
-                                                    "Open"
+                                                    business.status.toLowerCase() ===
+                                                    "open"
                                                         ? "bg-emerald-500/10 text-emerald-400"
                                                         : "bg-red-500/10 text-red-400"
                                                 }`}
                                             >
                                                 <span
                                                     className={`h-1.5 w-1.5 rounded-full ${
-                                                        business.status ===
-                                                        "Open"
+                                                        business.status.toLowerCase() ===
+                                                        "open"
                                                             ? "bg-emerald-400"
                                                             : "bg-red-400"
                                                     }`}
@@ -577,19 +506,27 @@ export default function BusinessListPage() {
 
                                         {/* Approver */}
                                         <td className="px-5 py-4">
-                                            <p className="text-zinc-300">
-                                                {
-                                                    business.approver
-                                                        .approverFullName
-                                                }
-                                            </p>
+                                            {business.approver ? (
+                                                <>
+                                                    <p className="text-zinc-300">
+                                                        {
+                                                            business.approver
+                                                                .approverFullName
+                                                        }
+                                                    </p>
 
-                                            <p className="mt-1 text-xs text-zinc-600">
-                                                Approved{" "}
-                                                {new Date(
-                                                    business.approver.approvedAt,
-                                                ).toLocaleDateString()}
-                                            </p>
+                                                    <p className="mt-1 text-xs text-zinc-600">
+                                                        Approved{" "}
+                                                        {new Date(
+                                                            business.approver.approvedAt,
+                                                        ).toLocaleDateString()}
+                                                    </p>
+                                                </>
+                                            ) : (
+                                                <span className="text-zinc-600">
+                                                    Not approved
+                                                </span>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
@@ -607,16 +544,26 @@ export default function BusinessListPage() {
                     <div className="flex gap-2">
                         <button
                             type="button"
-                            disabled
-                            className="rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-zinc-600 transition hover:bg-zinc-800"
+                            onClick={handlePreviousPage}
+                            disabled={
+                                isLoading ||
+                                !data ||
+                                data.page <= 1
+                            }
+                            className="rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-zinc-400 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:text-zinc-700"
                         >
                             <ChevronLeft className="h-4 w-4" />
                         </button>
 
                         <button
                             type="button"
-                            disabled
-                            className="rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-zinc-600 transition hover:bg-zinc-800"
+                            onClick={handleNextPage}
+                            disabled={
+                                isLoading ||
+                                !data ||
+                                data.page >= data.pages
+                            }
+                            className="rounded-lg border border-zinc-800 bg-zinc-950 p-2 text-zinc-400 transition hover:bg-zinc-800 disabled:cursor-not-allowed disabled:text-zinc-700"
                         >
                             <ChevronRight className="h-4 w-4" />
                         </button>
