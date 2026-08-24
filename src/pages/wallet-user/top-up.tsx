@@ -1,17 +1,54 @@
-import { PhoneIcon } from "lucide-react";
+import { Loader2, PhoneIcon } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { BackButton } from "../../components/ui/back-button";
 import { iconSize } from "../../utils/constants";
 import { useModal } from "../../hooks/use-modal";
 import { ConfirmModal } from "../../components/confirm-modal";
+import { privateRequest } from "../../utils/api";
+import type { ActionResult } from "../../schemas/wallet/output";
 
-const PACKAGES = [500, 1000, 1500, 2000, 3000, 5000, 500, 1000, 1500, 2000, 3000, 5000, 10000, 20000, 1000, 1500, 2000, 3000, 5000, 500, 1000, 1500, 2000, 3000, 5000, 10000, 20000];
+const PACKAGES = [
+    500, 1000, 1500, 2000, 3000, 5000, 500, 1000, 1500, 2000, 3000, 5000,
+    10000, 20000, 1000, 1500, 2000, 3000, 5000, 500, 1000, 1500, 2000, 3000,
+    5000, 10000, 20000,
+];
 
 export function TopUpPage() {
     const modal = useModal();
+    const navigate = useNavigate();
+
+    const [phoneNo, setPhoneNo] = useState("");
     const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
     const selectedAmount = selectedIndex !== null ? PACKAGES[selectedIndex] : null;
+
+    const handleConfirm = async (pin: string) => {
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            const result = await privateRequest<ActionResult>("/wallet-user/action/mobile-topup", {
+                method: "POST",
+                body: {
+                    amount: selectedAmount,
+                    phoneNo: phoneNo,
+                    pin: pin,
+                },
+            });
+
+            // Close modal on success and navigate to wallet home or success page
+            modal.close();
+            navigate(`/wallet/transaction/${result.actionResult}`, { state: { result } });
+        } catch (err) {
+            if (err instanceof Error)
+                setError(err?.message || "Failed to process mobile topup. Please try again.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     return (
         <div className="bg-white/10 text-white min-h-screen flex justify-center">
@@ -21,6 +58,13 @@ export function TopUpPage() {
                     <BackButton />
                     <h4 className="text-2xl text-center mb-3">Mobile Topup</h4>
                 </div>
+
+                {/* Error Banner */}
+                {error && (
+                    <div className="mb-3 rounded-2xl border border-rose-500/30 bg-rose-500/10 p-3 text-center text-xs font-medium text-rose-300 backdrop-blur-md animate-in fade-in">
+                        {error}
+                    </div>
+                )}
 
                 {/* Phone input — liquid glass, sticky on scroll */}
                 <div className="sticky top-2 z-20">
@@ -36,7 +80,13 @@ export function TopUpPage() {
                             id="phone-no"
                             placeholder="Enter phone number"
                             type="tel"
-                            className="outline-0 grow text-xl bg-transparent placeholder:text-white/30"
+                            disabled={isLoading}
+                            value={phoneNo}
+                            onChange={(e) => {
+                                setError(null);
+                                setPhoneNo(e.target.value);
+                            }}
+                            className="outline-0 grow text-xl bg-transparent placeholder:text-white/30 disabled:opacity-50"
                         />
                     </div>
                 </div>
@@ -47,20 +97,27 @@ export function TopUpPage() {
                             key={i}
                             amount={amount}
                             selected={selectedIndex === i}
-                            onSelect={() => setSelectedIndex(i)}
+                            onSelect={() => {
+                                setError(null);
+                                setSelectedIndex(i);
+                            }}
                         />
                     ))}
                 </div>
             </div>
 
-            <PayButton onClick={modal.open} disabled={selectedAmount === null} />
+            <PayButton
+                onClick={modal.open}
+                disabled={selectedAmount === null || !phoneNo.trim() || isLoading}
+                isLoading={isLoading}
+            />
 
             {selectedAmount !== null && (
                 <ConfirmModal
                     amount={selectedAmount}
                     balance={10000}
-                    onConfirm={() => {}}
-                    phoneNumber="0987654321"
+                    onConfirm={handleConfirm}
+                    phoneNumber={phoneNo}
                     isOpen={modal.isOpen}
                     onClose={modal.close}
                 />
@@ -101,15 +158,30 @@ function PackageCard({
     );
 }
 
-function PayButton({ onClick, disabled }: { onClick?: () => void; disabled?: boolean }) {
+function PayButton({
+    onClick,
+    disabled,
+    isLoading,
+}: {
+    onClick?: () => void;
+    disabled?: boolean;
+    isLoading?: boolean;
+}) {
     return (
         <button
             onClick={onClick}
             disabled={disabled}
-            className={`fixed bottom-5 left-1/2 -translate-x-1/2 ${disabled ? '' : 'theme'} font-semibold w-full md:w-1/3 rounded-full p-3 text-xl
+            className={`fixed bottom-5 left-1/2 -translate-x-1/2 ${disabled ? "" : "theme"} flex justify-center items-center gap-2 font-semibold w-full md:w-1/3 rounded-full p-3 text-xl
                        disabled:cursor-not-allowed disabled:bg-transparent disabled:border disabled:border-white/20 disabled:backdrop-blur-2xl transition-opacity`}
         >
-            Confirm Payment
+            {isLoading ? (
+                <>
+                    <Loader2 className="h-6 w-6 animate-spin text-white" />
+                    <span>Processing...</span>
+                </>
+            ) : (
+                "Confirm Payment"
+            )}
         </button>
     );
 }

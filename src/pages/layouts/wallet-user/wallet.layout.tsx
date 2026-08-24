@@ -1,7 +1,7 @@
 import { Outlet } from "react-router-dom";
 import {
     FloatedBottomNavbar,
-    FloatedTopNavbar,
+    // FloatedTopNavbar,
 } from "../../../components/floated-navbar";
 
 export function WalletLayout() {
@@ -10,7 +10,7 @@ export function WalletLayout() {
             <section className="h-full">
                 <div className="flex h-full justify-center">
                     <div className="relative h-full w-full md:w-[40%]">
-                        <FloatedTopNavbar />
+                        {/* <FloatedTopNavbar /> */}
 
                         {/* This is the scrolling area */}
                         <div className="h-full overflow-y-auto overflow-x-hidden">

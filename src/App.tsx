@@ -19,6 +19,8 @@ import AccountDetailPage from './pages/manager/accounts/account-detail'
 import AccountListPage from './pages/manager/accounts/account-list'
 import BusinessListPage from './pages/manager/businesses/business-list'
 import WalletRoot from './pages/layouts/wallet-user/wallet.root'
+import { ContactPage } from './pages/wallet-user/contact'
+import { WalletRegisterPage } from './pages/auth/wallet-register'
 
 function App() {
 
@@ -27,12 +29,14 @@ function App() {
       <Routes>
         <Route path='/auth'>
           <Route path='wallet' element={<WalletLoginPage />} />
+          <Route path='wallet/register' element={<WalletRegisterPage />} />
           <Route path='wallet/remember' element={<WalletRememberPage />} />
           <Route path='manager' element={<ManagerLoginPage />} />
         </Route>
         <Route element={<WalletRoot />}>
           <Route path='/wallet' element={<WalletLayout />}>
             <Route index element={<HomePage />} />
+            <Route path='contact' element={<ContactPage />} />
             <Route path='setting' element={<SettingPage />} />
             <Route path='agent' element={<AgentPage />} />
             <Route path='transaction'>
