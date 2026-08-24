@@ -24,7 +24,7 @@ export function FloatedBottomNavbar() {
             <div className="flex items-center">
                 <NavItem end icon={<WalletIcon size={iconSize} />} label="Wallet" link="/wallet"/>
                 <NavItem icon={<BotIcon size={iconSize} />} label="Agent" link="/wallet/agent" />
-                <NavItem icon={<Users2Icon size={iconSize} />} label="Contact" link="/wallet/contact" />
+                {/* <NavItem icon={<Users2Icon size={iconSize} />} label="Contact" link="/wallet/contact" /> */}
                 <NavItem icon={<SettingsIcon size={iconSize} />} label="Setting" link="/wallet/setting" />
             </div>
         </div>

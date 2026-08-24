@@ -47,9 +47,9 @@ function ActionButtons() {
     return (
         <div className="flex justify-evenly items-center absolute -bottom-7 px-3 left-1/2 -translate-x-1/2 w-[95%]">
             <ActionBtn link="/action/topup" label="Top Up" icon={<SmartphoneIcon size={iconSize} />} />
-            <ActionBtn label="Receive" icon={<ArrowDownLeft size={iconSize} />} />
+            {/* <ActionBtn label="Receive" icon={<ArrowDownLeft size={iconSize} />} /> */}
             <ActionBtn link="/action/send" label="Send" icon={<ArrowUpRight size={iconSize} />} />
-            <ActionBtn label="Pay bill" icon={<CreditCardIcon size={iconSize} />} />
+            {/* <ActionBtn label="Pay bill" icon={<CreditCardIcon size={iconSize} />} /> */}
         </div>
     )
 }

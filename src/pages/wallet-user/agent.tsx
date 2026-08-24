@@ -753,13 +753,13 @@ function AgentChatInput({ onSend, disabled }: AgentChatInputProps) {
     return (
         <form onSubmit={handleSubmit} className="z-50 shrink-0 px-4 py-3">
             <div className="flex w-full items-end gap-2 rounded-3xl bg-white/10 px-3 py-2 backdrop-blur-md">
-                <button
+                {/* <button
                     type="button"
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white/70"
                     aria-label="Voice input"
                 >
                     <Mic size={18} />
-                </button>
+                </button> */}
 
                 <textarea
                     ref={inputRef}
