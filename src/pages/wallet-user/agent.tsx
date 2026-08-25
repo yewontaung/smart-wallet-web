@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
     ArrowUp,
-    Mic,
+    // Mic,
     Loader2,
     Check,
     X,
