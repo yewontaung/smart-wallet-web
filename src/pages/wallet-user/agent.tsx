@@ -436,265 +436,265 @@ export function AgentPage() {
     }
 
     return (
-        <div
-            className="flex flex-col overflow-hidden"
-            style={{
-                height: keyboardOpen
-                    ? `${viewportHeight}px`
-                    : `calc(100dvh - ${BOTTOM_NAV_HEIGHT}px)`,
-            }}
-        >
-            <main className="min-h-0 flex-1 overflow-y-auto px-4">
-                <div className="flex flex-col gap-3 pt-20 px-2 pb-4">
-                    {messages.length === 0 && !optimisticPrompt && (
-                        <div className="mt-20 text-center text-xs font-normal tracking-wide text-white/40">
-                            Ask me to send money, check your balance, pay a bill, or top up.
-                        </div>
-                    )}
-
-                    {messages.map((message) => (
-                        <React.Fragment key={message.messageId}>
-                            <div className="flex justify-end my-1">
-                                <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-white/95 px-3.5 py-2 text-xs font-normal text-neutral-900 shadow-sm leading-relaxed">
-                                    {message.prompt}
-                                </div>
+            <div
+                className="flex flex-col overflow-hidden"
+                style={{
+                    height: keyboardOpen
+                        ? `${viewportHeight}px`
+                        : `calc(100dvh - ${BOTTOM_NAV_HEIGHT}px)`,
+                }}
+            >
+                <main className="min-h-0 flex-1 overflow-y-auto px-4">
+                    <div className="flex flex-col gap-3 pt-20 px-2 pb-4">
+                        {messages.length === 0 && !optimisticPrompt && (
+                            <div className="mt-20 text-center text-xs font-normal tracking-wide text-white/40">
+                                Ask me to send money, check your balance, pay a bill, or top up.
                             </div>
+                        )}
 
-                            {message.agentActions.map((action) => {
-                                const status = actionStatuses[action.actionId] || "idle";
-                                const error = actionErrors[action.actionId];
-                                const isTerminal =
-                                    status === "completed" ||
-                                    status === "failed" ||
-                                    status === "cancelled" ||
-                                    status === "expired";
+                        {messages.map((message) => (
+                            <React.Fragment key={message.messageId}>
+                                <div className="flex justify-end my-1">
+                                    <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-white/95 px-3.5 py-2 text-sm font-normal text-neutral-900 shadow-sm leading-relaxed">
+                                        {message.prompt}
+                                    </div>
+                                </div>
 
-                                const currentRequirePayload = editablePayloads[action.actionId] || {};
-                                const formDisplay = (action as { formDisplay?: Record<string, unknown> }).formDisplay || {};
+                                {message.agentActions.map((action) => {
+                                    const status = actionStatuses[action.actionId] || "idle";
+                                    const error = actionErrors[action.actionId];
+                                    const isTerminal =
+                                        status === "completed" ||
+                                        status === "failed" ||
+                                        status === "cancelled" ||
+                                        status === "expired";
 
-                                const hasRequireFields = Object.keys(currentRequirePayload).length > 0;
-                                const hasDisplayFields = Object.keys(formDisplay).length > 0;
-                                const hasContent = hasRequireFields || hasDisplayFields;
+                                    const currentRequirePayload = editablePayloads[action.actionId] || {};
+                                    const formDisplay = (action as { formDisplay?: Record<string, unknown> }).formDisplay || {};
 
-                                return (
-                                    <div key={action.actionId} className="w-full my-0.5">
-                                        <div className="w-full rounded-2xl border border-white/10 bg-white/5 p-3.5 flex flex-col gap-3 backdrop-blur-md shadow-lg transition-all">
-                                            {/* Header */}
-                                            <div className="flex items-center justify-between gap-2.5">
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    <div className="h-6 w-6 rounded-full bg-white/10 border border-white/15 flex items-center justify-center shrink-0 text-white/80">
-                                                        <Bot size={13} />
+                                    const hasRequireFields = Object.keys(currentRequirePayload).length > 0;
+                                    const hasDisplayFields = Object.keys(formDisplay).length > 0;
+                                    const hasContent = hasRequireFields || hasDisplayFields;
+
+                                    return (
+                                        <div key={action.actionId} className="w-full my-0.5">
+                                            <div className="w-full rounded-2xl border border-white/10 bg-white/5 p-3.5 flex flex-col gap-3 backdrop-blur-md shadow-lg transition-all">
+                                                {/* Header */}
+                                                <div className="flex items-center justify-between gap-2.5">
+                                                    <div className="flex items-center gap-2 min-w-0">
+                                                        <div className="h-6 w-6 rounded-full bg-white/10 border border-white/15 flex items-center justify-center shrink-0 text-white/80">
+                                                            <Bot size={13} />
+                                                        </div>
+                                                        <h4 className="text-sm font-medium text-white/90 leading-tight tracking-tight">
+                                                            {action.description}
+                                                        </h4>
                                                     </div>
-                                                    <h4 className="text-xs font-medium text-white/90 leading-tight tracking-tight">
-                                                        {action.description}
-                                                    </h4>
+
+                                                    {/* Status Badges */}
+                                                    {status === "completed" && (
+                                                        <span className="shrink-0 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md inline-flex items-center gap-1 uppercase tracking-wider">
+                                                            <Check size={10} /> Done
+                                                        </span>
+                                                    )}
+                                                    {status === "failed" && (
+                                                        <span className="shrink-0 text-[10px] font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-md inline-flex items-center gap-1 uppercase tracking-wider">
+                                                            <X size={10} /> Failed
+                                                        </span>
+                                                    )}
+                                                    {status === "cancelled" && (
+                                                        <span className="shrink-0 text-[10px] font-medium text-white/50 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                                            Cancelled
+                                                        </span>
+                                                    )}
+                                                    {status === "expired" && (
+                                                        <span className="shrink-0 text-[10px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                                            Expired
+                                                        </span>
+                                                    )}
+                                                    {status === "idle" && action.agentHook?.requirePin && (
+                                                        <span className="shrink-0 text-[10px] font-medium text-amber-300/80 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
+                                                            <Lock size={9} /> PIN Required
+                                                        </span>
+                                                    )}
                                                 </div>
 
-                                                {/* Status Badges */}
-                                                {status === "completed" && (
-                                                    <span className="shrink-0 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md inline-flex items-center gap-1 uppercase tracking-wider">
-                                                        <Check size={10} /> Done
-                                                    </span>
-                                                )}
-                                                {status === "failed" && (
-                                                    <span className="shrink-0 text-[10px] font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-md inline-flex items-center gap-1 uppercase tracking-wider">
-                                                        <X size={10} /> Failed
-                                                    </span>
-                                                )}
-                                                {status === "cancelled" && (
-                                                    <span className="shrink-0 text-[10px] font-medium text-white/50 bg-white/5 border border-white/10 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                                        Cancelled
-                                                    </span>
-                                                )}
-                                                {status === "expired" && (
-                                                    <span className="shrink-0 text-[10px] font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
-                                                        Expired
-                                                    </span>
-                                                )}
-                                                {status === "idle" && action.agentHook?.requirePin && (
-                                                    <span className="shrink-0 text-[10px] font-medium text-amber-300/80 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md inline-flex items-center gap-1">
-                                                        <Lock size={9} /> PIN Required
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            {/* Data Section */}
-                                            {hasContent && (
-                                                <div className="rounded-xl bg-black/30 p-2.5 flex flex-col gap-2">
-                                                    {/* Display formDisplay items */}
-                                                    {Object.entries(formDisplay).map(([key, val]) => (
-                                                        <div
-                                                            key={key}
-                                                            className="flex justify-between items-center gap-3 text-xs"
-                                                        >
-                                                            <span className="text-white/60 font-normal capitalize inline-flex items-center gap-1.5 text-xs tracking-wide shrink-0">
-                                                                {getFieldIcon(key)}
-                                                                {key.replace(/([A-Z])/g, " $1")}
-                                                            </span>
-                                                            <span className="text-white font-mono font-normal text-sm tracking-wide text-right truncate">
-                                                                {String(val)}
-                                                            </span>
-                                                        </div>
-                                                    ))}
-
-                                                    {/* Display editable requirePayload inputs */}
-                                                    {Object.entries(currentRequirePayload).map(([key, val]) => (
-                                                        <div
-                                                            key={key}
-                                                            className="flex justify-between items-center gap-3 text-xs"
-                                                        >
-                                                            <span className="text-white/70 font-normal capitalize inline-flex items-center gap-1.5 text-xs tracking-wide shrink-0">
-                                                                {getFieldIcon(key)}
-                                                                {key.replace(/([A-Z])/g, " $1")}
-                                                            </span>
-                                                            {!isTerminal ? (
-                                                                <input
-                                                                    type="text"
-                                                                    value={String(val ?? "")}
-                                                                    onChange={(e) =>
-                                                                        handlePayloadChange(
-                                                                            action.actionId,
-                                                                            key,
-                                                                            e.target.value
-                                                                        )
-                                                                    }
-                                                                    className="text-right text-white font-mono font-normal text-sm bg-white/10 focus:bg-white/15 focus:outline-none px-2.5 py-1 rounded-lg w-full max-w-42.5 transition-colors border-none"
-                                                                />
-                                                            ) : (
-                                                                <span className="text-white font-mono font-normal text-sm tracking-wide text-right truncate">
+                                                {/* Data Section */}
+                                                {hasContent && (
+                                                    <div className="rounded-xl bg-black/30 p-2.5 flex flex-col gap-2">
+                                                        {/* Display formDisplay items */}
+                                                        {Object.entries(formDisplay).map(([key, val]) => (
+                                                            <div
+                                                                key={key}
+                                                                className="flex justify-between items-center gap-3"
+                                                            >
+                                                                <span className="text-white/60 font-normal capitalize inline-flex items-center gap-1.5 text-xs tracking-wide shrink-0">
+                                                                    {getFieldIcon(key)}
+                                                                    {key.replace(/([A-Z])/g, " $1")}
+                                                                </span>
+                                                                <span className="text-white text-sm tracking-wide text-right truncate">
                                                                     {String(val)}
                                                                 </span>
+                                                            </div>
+                                                        ))}
+
+                                                        {/* Display editable requirePayload inputs */}
+                                                        {Object.entries(currentRequirePayload).map(([key, val]) => (
+                                                            <div
+                                                                key={key}
+                                                                className="flex justify-between items-center gap-3 text-xs"
+                                                            >
+                                                                <span className="text-white/70 capitalize inline-flex items-center gap-1.5 tracking-wide shrink-0">
+                                                                    {getFieldIcon(key)}
+                                                                    {key.replace(/([A-Z])/g, " $1")}
+                                                                </span>
+                                                                {!isTerminal ? (
+                                                                    <input
+                                                                        type="text"
+                                                                        value={String(val ?? "")}
+                                                                        onChange={(e) =>
+                                                                            handlePayloadChange(
+                                                                                action.actionId,
+                                                                                key,
+                                                                                e.target.value
+                                                                            )
+                                                                        }
+                                                                        className="text-right text-white text-sm bg-white/10 focus:bg-white/15 focus:outline-none px-2.5 py-1 rounded-lg w-full max-w-42.5 transition-colors border-none"
+                                                                    />
+                                                                ) : (
+                                                                    <span className="text-white text-sm tracking-wide text-right truncate">
+                                                                        {String(val)}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+
+                                                {error && (
+                                                    <div className="text-xs text-rose-400 inline-flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 p-2 rounded-xl">
+                                                        <ShieldAlert size={13} className="shrink-0" />
+                                                        <span className="text-xs leading-tight">{error}</span>
+                                                    </div>
+                                                )}
+
+                                                {/* Footer Actions */}
+                                                <div className="flex items-center justify-between pt-0.5">
+                                                    {!isTerminal ? (
+                                                        <button
+                                                            onClick={() => handleCancelAction(action.actionId)}
+                                                            disabled={status === "executing"}
+                                                            className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors inline-flex items-center gap-1 px-2 py-1 rounded-lg disabled:opacity-40 font-normal"
+                                                        >
+                                                            <Trash2 size={12} /> Cancel
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleDeleteAction(action.actionId)}
+                                                            className="text-xs text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors inline-flex items-center gap-1 px-2 py-1 rounded-lg font-normal"
+                                                        >
+                                                            <Trash2 size={12} /> Clear
+                                                        </button>
+                                                    )}
+
+                                                    {!isTerminal && action.agentHook && (
+                                                        <button
+                                                            onClick={() => handleInitiateAction(action)}
+                                                            disabled={status === "executing"}
+                                                            className="text-xs font-normal text-neutral-900 bg-white hover:bg-white/90 active:scale-[0.98] transition-all inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl shadow-sm disabled:opacity-40"
+                                                        >
+                                                            {status === "executing" ? (
+                                                                <>
+                                                                    <Loader2 size={12} className="animate-spin text-neutral-600" />
+                                                                    Processing…
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    Confirm <ArrowRight size={12} />
+                                                                </>
                                                             )}
-                                                        </div>
-                                                    ))}
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            )}
-
-                                            {error && (
-                                                <div className="text-xs text-rose-400 inline-flex items-center gap-1.5 bg-rose-500/10 border border-rose-500/20 p-2 rounded-xl">
-                                                    <ShieldAlert size={13} className="shrink-0" />
-                                                    <span className="text-xs leading-tight">{error}</span>
-                                                </div>
-                                            )}
-
-                                            {/* Footer Actions */}
-                                            <div className="flex items-center justify-between pt-0.5">
-                                                {!isTerminal ? (
-                                                    <button
-                                                        onClick={() => handleCancelAction(action.actionId)}
-                                                        disabled={status === "executing"}
-                                                        className="text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 transition-colors inline-flex items-center gap-1 px-2 py-1 rounded-lg disabled:opacity-40 font-normal"
-                                                    >
-                                                        <Trash2 size={12} /> Cancel
-                                                    </button>
-                                                ) : (
-                                                    <button
-                                                        onClick={() => handleDeleteAction(action.actionId)}
-                                                        className="text-xs text-white/40 hover:text-rose-400 hover:bg-rose-500/10 transition-colors inline-flex items-center gap-1 px-2 py-1 rounded-lg font-normal"
-                                                    >
-                                                        <Trash2 size={12} /> Clear
-                                                    </button>
-                                                )}
-
-                                                {!isTerminal && action.agentHook && (
-                                                    <button
-                                                        onClick={() => handleInitiateAction(action)}
-                                                        disabled={status === "executing"}
-                                                        className="text-xs font-normal text-neutral-900 bg-white hover:bg-white/90 active:scale-[0.98] transition-all inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl shadow-sm disabled:opacity-40"
-                                                    >
-                                                        {status === "executing" ? (
-                                                            <>
-                                                                <Loader2 size={12} className="animate-spin text-neutral-600" />
-                                                                Processing…
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                Confirm <ArrowRight size={12} />
-                                                            </>
-                                                        )}
-                                                    </button>
-                                                )}
                                             </div>
                                         </div>
+                                    );
+                                })}
+                            </React.Fragment>
+                        ))}
+
+                        {loading && optimisticPrompt && (
+                            <React.Fragment>
+                                <div className="flex justify-end my-1">
+                                    <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-white/70 px-3.5 py-2 text-sm font-normal text-neutral-900">
+                                        {optimisticPrompt}
                                     </div>
-                                );
-                            })}
-                        </React.Fragment>
-                    ))}
-
-                    {loading && optimisticPrompt && (
-                        <React.Fragment>
-                            <div className="flex justify-end my-1">
-                                <div className="max-w-[80%] rounded-2xl rounded-tr-sm bg-white/70 px-3.5 py-2 text-xs font-normal text-neutral-900">
-                                    {optimisticPrompt}
                                 </div>
+
+                                <div className="flex items-center gap-2 text-xs text-white/40 py-1 px-2">
+                                    <Loader2 size={12} className="animate-spin" />
+                                    <span>Processing prompt…</span>
+                                </div>
+                            </React.Fragment>
+                        )}
+
+                        <div ref={messagesEndRef} />
+                    </div>
+                </main>
+
+                <AgentChatInput onSend={handleSend} disabled={loading} />
+
+                {pinModal.isOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+                        <form
+                            onSubmit={handlePinSubmit}
+                            className="w-full max-w-xs rounded-2xl border border-white/10 bg-neutral-900 p-5 flex flex-col items-center gap-4 text-center shadow-2xl"
+                        >
+                            <div className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70">
+                                <Lock size={15} />
+                            </div>
+                            <div>
+                                <h3 className="text-xs font-medium text-white tracking-wide">Security PIN</h3>
+                                <p className="text-[11px] text-white/40 mt-0.5">
+                                    Enter your 6-digit authorization PIN.
+                                </p>
                             </div>
 
-                            <div className="flex items-center gap-2 text-xs text-white/40 py-1 px-2">
-                                <Loader2 size={12} className="animate-spin" />
-                                <span>Processing prompt…</span>
+                            <div className="flex gap-1.5 justify-center my-1">
+                                {pinModal.pin.map((digit, idx) => (
+                                    <input
+                                        key={idx}
+                                        ref={(el) => { pinInputRefs.current[idx] = el; }}
+                                        type="password"
+                                        inputMode="numeric"
+                                        maxLength={1}
+                                        value={digit}
+                                        onChange={(e) => handlePinChange(idx, e.target.value)}
+                                        onKeyDown={(e) => handlePinKeyDown(idx, e)}
+                                        className="h-10 w-9 text-center font-mono text-sm bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30"
+                                    />
+                                ))}
                             </div>
-                        </React.Fragment>
-                    )}
 
-                    <div ref={messagesEndRef} />
-                </div>
-            </main>
-
-            <AgentChatInput onSend={handleSend} disabled={loading} />
-
-            {pinModal.isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <form
-                        onSubmit={handlePinSubmit}
-                        className="w-full max-w-xs rounded-2xl border border-white/10 bg-neutral-900 p-5 flex flex-col items-center gap-4 text-center shadow-2xl"
-                    >
-                        <div className="h-8 w-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70">
-                            <Lock size={15} />
-                        </div>
-                        <div>
-                            <h3 className="text-xs font-medium text-white tracking-wide">Security PIN</h3>
-                            <p className="text-[11px] text-white/40 mt-0.5">
-                                Enter your 6-digit authorization PIN.
-                            </p>
-                        </div>
-
-                        <div className="flex gap-1.5 justify-center my-1">
-                            {pinModal.pin.map((digit, idx) => (
-                                <input
-                                    key={idx}
-                                    ref={(el) => { pinInputRefs.current[idx] = el; }}
-                                    type="password"
-                                    inputMode="numeric"
-                                    maxLength={1}
-                                    value={digit}
-                                    onChange={(e) => handlePinChange(idx, e.target.value)}
-                                    onKeyDown={(e) => handlePinKeyDown(idx, e)}
-                                    className="h-10 w-9 text-center font-mono text-sm bg-white/5 border border-white/10 rounded-lg text-white focus:outline-none focus:border-white/30"
-                                />
-                            ))}
-                        </div>
-
-                        <div className="flex gap-2 w-full text-xs">
-                            <button
-                                type="button"
-                                onClick={() => setPinModal((prev) => ({ ...prev, isOpen: false }))}
-                                className="flex-1 py-2 text-white/50 hover:text-white transition-colors font-normal"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={pinModal.pin.join("").length !== 6}
-                                className="flex-1 py-2 font-normal text-neutral-900 bg-white rounded-xl hover:bg-white/90 disabled:opacity-30 transition-colors"
-                            >
-                                Confirm
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            )}
-        </div>
+                            <div className="flex gap-2 w-full text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => setPinModal((prev) => ({ ...prev, isOpen: false }))}
+                                    className="flex-1 py-2 text-white/50 hover:text-white transition-colors font-normal"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={pinModal.pin.join("").length !== 6}
+                                    className="flex-1 py-2 font-normal text-neutral-900 bg-white rounded-xl hover:bg-white/90 disabled:opacity-30 transition-colors"
+                                >
+                                    Confirm
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+            </div>
     );
 }
 
@@ -779,7 +779,7 @@ function AgentChatInput({ onSend, disabled }: AgentChatInputProps) {
                         overflow-y-auto
                         bg-transparent
                         py-2
-                        text-xs
+                        text-sm
                         leading-5
                         text-white
                         placeholder:text-white/40

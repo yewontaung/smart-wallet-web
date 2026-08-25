@@ -7,7 +7,7 @@ export type SignInResult = {
 }
 
 export type ModificationResult = {
-    resultItem:any
+    resultItem:unknown
     isSuccess:boolean
     message?:string
 }
