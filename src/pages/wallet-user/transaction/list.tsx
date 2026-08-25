@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
-    ArrowDownLeft,
-    ArrowUpRight,
     ChevronLeft,
     ChevronRight,
     Loader2,
