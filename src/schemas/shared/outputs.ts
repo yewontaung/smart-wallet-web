@@ -74,3 +74,44 @@ export type BusinessProfileListItem = {
   owner: OwnerInfo;
   approver: ApproverInfo;
 };
+
+
+
+export interface NrcForm {
+  districtCode: string;   // e.g., "12"
+  townshipCode: string;   // e.g., "MAMANA"
+  nrcType: string;        // e.g., "N"
+  nrcNo: string;          // e.g., "123456"
+}
+
+export interface AddressForm {
+  addressContent: string; // e.g., "Street 12, House 4"
+  townshipId: number;
+  districtId: number;
+}
+
+export interface WalletUserForm {
+  fullName: string;
+  phoneNo: string;
+  nrcForm: NrcForm;
+  addressForm: AddressForm;
+  pin: string;
+  confirmPin: string;
+}
+
+export interface DistrictInfo {
+  districtId: number;
+  districtName: string;
+  townships: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TownshipInfo {
+  townshipId: number;
+  townshipName: string;
+  districtId: number;
+  districtName: string;
+  createdAt: string;
+  updatedAt: string;
+}

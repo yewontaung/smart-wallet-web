@@ -13,7 +13,7 @@ export type ReceiverProfile = {
 }
 
 export type ActionResult = {
-    actionResult:unknown
+    actionResult:string
     actionType:string
     message:string
 }

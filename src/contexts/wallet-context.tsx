@@ -10,6 +10,8 @@ import {
 } from "../hooks/use-wallet";
 
 import { getMyBalance } from "../services/wallet-user/me.service";
+import { useAuth } from "../hooks/use-auth";
+import { useGlobalWebSocket } from "../hooks/use-global-socket";
 
 export function WalletProvider({
     children,
@@ -33,6 +35,11 @@ export function WalletProvider({
 
         loadBalance();
     }, []);
+
+    const { user } = useAuth();
+
+    // Initialize the single WS connection for the entire app session
+    useGlobalWebSocket(user?.accountId);
 
     if (loading || !value) {
         return (
