@@ -1,4 +1,12 @@
-import { ArrowDownLeft, ArrowUpRight, ChevronRightIcon, CreditCardIcon, Eye, EyeOff, ListIcon, SmartphoneIcon, TrendingDownIcon, TrendingUpIcon } from "lucide-react"
+import { 
+    // ArrowDownLeft, 
+    // TrendingDownIcon, 
+    // TrendingUpIcon,
+    // ChevronRightIcon, 
+    // CreditCardIcon, 
+    ArrowUpRight, 
+    Eye, EyeOff, ListIcon, SmartphoneIcon, 
+} from "lucide-react"
 import { Link } from "react-router-dom"
 import { iconSize } from "../../utils/constants"
 import { useState, type ReactNode } from "react"
@@ -13,7 +21,7 @@ export function HomePage() {
         queryFn: () => getMyTransactionLogs(),
     })
     return (
-        <div className="bg-slate-950 text-slate-100 min-h-screen">
+        <div className="text-slate-100 min-h-screen">
             {/* Balance section */}
             <section className="p-10 relative">
                 <BalanceCard />
@@ -124,8 +132,8 @@ function BalanceCard() {
                             {showBalance
                                 ? `${formatAmount(
                                     balanceInfo?.currentBalance ?? 0
-                                )} MMK`
-                                : "•••••••• MMK"}
+                                )}`
+                                : "••••••••"} <small className="text-xs">KS</small>
                         </span>
                     )}
                 </div>

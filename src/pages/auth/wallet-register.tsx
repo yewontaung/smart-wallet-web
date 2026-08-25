@@ -87,7 +87,7 @@ export function WalletRegisterPage() {
     }));
   };
 
-  const handleAddressChange = (field: keyof WalletUserForm["addressForm"], value: any) => {
+  const handleAddressChange = (field: keyof WalletUserForm["addressForm"], value: unknown) => {
     setError(null);
     setFormData((prev) => ({
       ...prev,
