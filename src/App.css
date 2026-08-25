@@ -3,3 +3,20 @@
 .theme {
   @apply border border-sky-400/30 bg-linear-to-br from-blue-600 via-indigo-600 to-sky-500;
 }
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
+/* Remove spinner arrows globally for all browsers with standard appearance support */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -webkit-appearance: textfield;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

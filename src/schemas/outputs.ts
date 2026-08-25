@@ -6,6 +6,12 @@ export type SignInResult = {
     message?:string,
 }
 
+export type ModificationResult = {
+    resultItem:unknown
+    isSuccess:boolean
+    message?:string
+}
+
 export type ProfileInfo = {
     accountId:string
     phoneNo:string
